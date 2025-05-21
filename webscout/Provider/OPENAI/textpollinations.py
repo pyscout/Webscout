@@ -8,7 +8,8 @@ from typing import List, Dict, Optional, Union, Generator, Any
 from .base import OpenAICompatibleProvider, BaseChat, BaseCompletions
 from .utils import (
     ChatCompletionChunk, ChatCompletion, Choice, ChoiceDelta,
-    ChatCompletionMessage, CompletionUsage, ToolCall, ToolFunction
+    ChatCompletionMessage, CompletionUsage, ToolCall, ToolFunction,
+    count_tokens
 )
 
 # Import LitAgent for browser fingerprinting
@@ -227,8 +228,8 @@ class Completions(BaseCompletions):
             )
 
             # Estimate token usage (very rough estimate)
-            prompt_tokens = sum(len(msg.get("content", "")) // 4 for msg in payload.get("messages", []))
-            completion_tokens = len(full_content) // 4
+            prompt_tokens = sum(count_tokens(msg.get("content", "")) for msg in payload.get("messages", []))
+            completion_tokens = count_tokens(full_content)
             usage = CompletionUsage(
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,

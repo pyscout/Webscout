@@ -12,7 +12,7 @@ from .base import OpenAICompatibleProvider, BaseChat, BaseCompletions
 from .utils import (
     ChatCompletionChunk, ChatCompletion, Choice, ChoiceDelta,
     ChatCompletionMessage, CompletionUsage,
-    format_prompt, get_system_prompt, get_last_user_message
+    format_prompt, get_system_prompt, get_last_user_message, count_tokens
 )
 
 # Import LitAgent for browser fingerprinting
@@ -159,8 +159,8 @@ class Completions(BaseCompletions):
             )
 
             # Estimate token usage (very rough estimate)
-            prompt_tokens = len(str(payload).split()) * 2
-            completion_tokens = len(full_response.split()) * 2
+            prompt_tokens = count_tokens(str(payload)) * 2
+            completion_tokens = count_tokens(full_response) * 2
             total_tokens = prompt_tokens + completion_tokens
 
             usage = CompletionUsage(

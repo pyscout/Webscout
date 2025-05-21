@@ -12,7 +12,8 @@ from .utils import (
     ChatCompletionMessage,
     ChoiceDelta,
     CompletionUsage,
-    format_prompt
+    format_prompt,
+    count_tokens,
 )
 
 # ANSI escape codes for formatting
@@ -163,8 +164,8 @@ class Completions(BaseCompletions):
                 full_text = full_text.encode('latin1').decode('utf-8')
             except (UnicodeEncodeError, UnicodeDecodeError):
                 pass
-            prompt_tokens = len(payload["question"]) // 4
-            completion_tokens = len(full_text) // 4
+            prompt_tokens = count_tokens(payload["question"])
+            completion_tokens = count_tokens(full_text)
             total_tokens = prompt_tokens + completion_tokens
             usage = CompletionUsage(
                 prompt_tokens=prompt_tokens,

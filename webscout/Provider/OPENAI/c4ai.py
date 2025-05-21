@@ -10,7 +10,7 @@ from .base import OpenAICompatibleProvider, BaseChat, BaseCompletions
 from .utils import (
     ChatCompletionChunk, ChatCompletion, Choice, ChoiceDelta,
     ChatCompletionMessage, CompletionUsage,
-    get_system_prompt, get_last_user_message, format_prompt # Import format_prompt
+    get_system_prompt, get_last_user_message, format_prompt, count_tokens
 )
 
 # Attempt to import LitAgent, fallback if not available
@@ -194,8 +194,8 @@ class Completions(BaseCompletions):
             message = ChatCompletionMessage(role="assistant", content=response_text)
             choice = Choice(index=0, message=message, finish_reason="stop")
             # Estimate tokens based on the formatted prompt
-            prompt_tokens = len(prompt) // 4
-            completion_tokens = len(response_text) // 4
+            prompt_tokens = count_tokens(prompt)
+            completion_tokens = count_tokens(response_text)
             usage = CompletionUsage(
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,

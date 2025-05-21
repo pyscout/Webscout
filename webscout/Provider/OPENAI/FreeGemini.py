@@ -22,7 +22,8 @@ from webscout.Provider.OPENAI.utils import (
     ChoiceDelta,
     CompletionUsage,
     format_prompt,
-    get_system_prompt
+    get_system_prompt,
+    count_tokens
 )
 
 # ANSI escape codes for formatting
@@ -100,7 +101,7 @@ class Completions(BaseCompletions):
             for text_chunk in processed_stream:
                 if text_chunk and isinstance(text_chunk, str):
                     streaming_text += text_chunk
-                    completion_tokens += len(text_chunk) // 4  # Rough estimate
+                    completion_tokens += count_tokens(text_chunk)
                     
                     delta = ChoiceDelta(content=text_chunk, role="assistant")
                     choice = Choice(index=0, delta=delta, finish_reason=None)
@@ -161,8 +162,8 @@ class Completions(BaseCompletions):
                             pass
             
             # Create usage statistics (rough estimate)
-            prompt_tokens = len(str(payload)) // 4
-            completion_tokens = len(full_text_response) // 4
+            prompt_tokens = count_tokens(str(payload))
+            completion_tokens = count_tokens(full_text_response)
             total_tokens = prompt_tokens + completion_tokens
             
             usage = CompletionUsage(

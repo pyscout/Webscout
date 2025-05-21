@@ -8,7 +8,7 @@ from typing import List, Dict, Optional, Union, Generator, Any
 from .base import OpenAICompatibleProvider, BaseChat, BaseCompletions
 from .utils import (
     ChatCompletionChunk, ChatCompletion, Choice, ChoiceDelta,
-    ChatCompletionMessage, CompletionUsage
+    ChatCompletionMessage, CompletionUsage, count_tokens
 )
 
 # Attempt to import LitAgent, fallback if not available
@@ -90,7 +90,7 @@ class Completions(BaseCompletions):
 
             # Estimate prompt tokens based on message length
             for msg in payload.get("messages", []):
-                prompt_tokens += len(msg.get("content", "").split())
+                prompt_tokens += count_tokens(msg.get("content", ""))
 
             for line in response.iter_lines():
                 if not line:

@@ -9,7 +9,7 @@ from .base import OpenAICompatibleProvider, BaseChat, BaseCompletions
 from .utils import (
     ChatCompletionChunk, ChatCompletion, Choice, ChoiceDelta,
     ChatCompletionMessage, CompletionUsage,
-    format_prompt, get_system_prompt  # Import format_prompt and get_system_prompt
+    format_prompt, get_system_prompt, count_tokens  # Import format_prompt and get_system_prompt
 )
 
 # Import LitAgent for browser fingerprinting
@@ -194,8 +194,8 @@ class Completions(BaseCompletions):
             full_text = full_text.replace('\\n', '\n').replace('\\n\\n', '\n\n')
 
             # Estimate token counts
-            prompt_tokens = len(payload.get("prompt", "").split()) + len(payload.get("systemPrompt", "").split())
-            completion_tokens = len(full_text.split())
+            prompt_tokens = count_tokens(payload.get("prompt", "")) + count_tokens(payload.get("systemPrompt", ""))
+            completion_tokens = count_tokens(full_text)
             total_tokens = prompt_tokens + completion_tokens
 
             # Create the message object

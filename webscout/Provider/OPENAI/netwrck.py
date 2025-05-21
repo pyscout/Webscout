@@ -15,7 +15,8 @@ from .utils import (
     ChoiceDelta,
     CompletionUsage,
     format_prompt,
-    get_system_prompt
+    get_system_prompt,
+    count_tokens,
 )
 
 # ANSI escape codes for formatting
@@ -91,7 +92,7 @@ class Completions(BaseCompletions):
                         # Format the decoded line using the client's formatter
                         formatted_content = self._client.format_text(decoded_line)
                         streaming_text += formatted_content
-                        completion_tokens += len(formatted_content) // 4  # Rough estimate
+                        completion_tokens += count_tokens(formatted_content)
                         
                         # Create a delta object for this chunk
                         delta = ChoiceDelta(content=formatted_content)
@@ -143,8 +144,8 @@ class Completions(BaseCompletions):
             full_response = self._client.format_text(raw_response)
 
             # Create usage statistics (estimated)
-            prompt_tokens = len(payload["query"]) // 4
-            completion_tokens = len(full_response) // 4
+            prompt_tokens = count_tokens(payload["query"])
+            completion_tokens = count_tokens(full_response)
             total_tokens = prompt_tokens + completion_tokens
             
             usage = CompletionUsage(

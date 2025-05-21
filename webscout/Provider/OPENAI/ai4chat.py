@@ -8,7 +8,7 @@ from typing import List, Dict, Optional, Union, Generator, Any
 from .base import OpenAICompatibleProvider, BaseChat, BaseCompletions
 from .utils import (
     ChatCompletionChunk, ChatCompletion, Choice, ChoiceDelta,
-    ChatCompletionMessage, CompletionUsage
+    ChatCompletionMessage, CompletionUsage, count_tokens
 )
 
 # --- AI4Chat Client ---
@@ -62,7 +62,7 @@ class Completions(BaseCompletions):
             full_response = self._get_ai4chat_response(conversation_prompt, country, user_id)
 
             # Track token usage
-            prompt_tokens = len(conversation_prompt.split())
+            prompt_tokens = count_tokens(conversation_prompt)
             completion_tokens = 0
 
             # Stream fixed-size character chunks (e.g., 48 chars)
@@ -71,7 +71,7 @@ class Completions(BaseCompletions):
             while buffer:
                 chunk_text = buffer[:chunk_size]
                 buffer = buffer[chunk_size:]
-                completion_tokens += len(chunk_text.split())
+                completion_tokens += count_tokens(chunk_text)
 
                 if chunk_text.strip():
                     # Create the delta object
@@ -141,8 +141,8 @@ class Completions(BaseCompletions):
             full_response = self._get_ai4chat_response(conversation_prompt, country, user_id)
 
             # Estimate token counts
-            prompt_tokens = len(conversation_prompt.split())
-            completion_tokens = len(full_response.split())
+            prompt_tokens = count_tokens(conversation_prompt)
+            completion_tokens = count_tokens(full_response)
             total_tokens = prompt_tokens + completion_tokens
 
             # Create the message object

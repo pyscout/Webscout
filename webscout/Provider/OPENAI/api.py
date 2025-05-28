@@ -727,7 +727,32 @@ async def handle_streaming_response(provider: Any, params: Dict[str, Any], reque
             if hasattr(completion_stream, '__iter__') and not isinstance(completion_stream, (str, bytes, dict)):
                 try:
                     for chunk in completion_stream:
-                        # Standardize chunk format before sending
+                        # Check if the chunk indicates a provider-side error (as per BLACKBOXAI.py update)
+                        # Assumes chunk is a ChatCompletionChunk object
+                        if hasattr(chunk, 'choices') and chunk.choices and \
+                           hasattr(chunk.choices[0], 'finish_reason') and chunk.choices[0].finish_reason == "error":
+                            
+                            error_message = "Unknown streaming error from provider."
+                            if hasattr(chunk.choices[0], 'delta') and \
+                               chunk.choices[0].delta and \
+                               hasattr(chunk.choices[0].delta, 'content') and \
+                               chunk.choices[0].delta.content:
+                                error_message = chunk.choices[0].delta.content
+                            
+                            error_message = clean_text(error_message) # Ensure error message is clean
+                            
+                            logger.error(f"Provider error received in stream for request {request_id}: {error_message}")
+                            error_data = {
+                                "error": {
+                                    "message": error_message,
+                                    "type": "provider_error", 
+                                    "code": "streaming_provider_error"
+                                }
+                            }
+                            yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+                            return # Stop further processing for this stream; [DONE] will be sent by finally
+
+                        # Standardize chunk format before sending if not an error chunk
                         if hasattr(chunk, 'model_dump'):  # Pydantic v2
                             chunk_data = chunk.model_dump(exclude_none=True)
                         elif hasattr(chunk, 'dict'):  # Pydantic v1
@@ -738,59 +763,67 @@ async def handle_streaming_response(provider: Any, params: Dict[str, Any], reque
                             chunk_data = chunk
                         
                         # Clean text content in the chunk to remove control characters
+                        # This part remains, as it can also handle non-error chunks from other providers
+                        # or if BLACKBOXAI.py's error chunk somehow bypasses the check above.
                         if isinstance(chunk_data, dict) and 'choices' in chunk_data:
-                            for choice in chunk_data.get('choices', []):
-                                if isinstance(choice, dict):
+                            for choice_item in chunk_data.get('choices', []): # Renamed 'choice' to 'choice_item' to avoid conflict
+                                if isinstance(choice_item, dict):
                                     # Handle delta for streaming
-                                    if 'delta' in choice and isinstance(choice['delta'], dict) and 'content' in choice['delta']:
-                                        choice['delta']['content'] = clean_text(choice['delta']['content'])
-                                    # Handle message for non-streaming
-                                    elif 'message' in choice and isinstance(choice['message'], dict) and 'content' in choice['message']:
-                                        choice['message']['content'] = clean_text(choice['message']['content'])
+                                    if 'delta' in choice_item and isinstance(choice_item['delta'], dict) and 'content' in choice_item['delta']:
+                                        choice_item['delta']['content'] = clean_text(choice_item['delta']['content'])
+                                    # Handle message for non-streaming (less relevant here but good for consistency)
+                                    elif 'message' in choice_item and isinstance(choice_item['message'], dict) and 'content' in choice_item['message']:
+                                        choice_item['message']['content'] = clean_text(choice_item['message']['content'])
                         
                         yield f"data: {json.dumps(chunk_data, ensure_ascii=False)}\n\n"
                 except TypeError as te:
-                    logger.error(f"Error iterating over completion_stream: {te}")
+                    logger.error(f"Error iterating over completion_stream: {te}. Request ID: {request_id}")
                     # Fall back to treating as non-generator response
-                    if hasattr(completion_stream, 'model_dump'):
-                        response_data = completion_stream.model_dump(exclude_none=True)
-                    elif hasattr(completion_stream, 'dict'):
-                        response_data = completion_stream.dict(exclude_none=True)
+                    # This block handles the case where completion_stream is not an iterator (e.g., a single object)
+                    # or if TypeError occurred during iteration.
+                    if hasattr(completion_stream, 'model_dump'): # Pydantic v2
+                        response_data_fallback = completion_stream.model_dump(exclude_none=True)
+                    elif hasattr(completion_stream, 'dict'): # Pydantic v1
+                        response_data_fallback = completion_stream.dict(exclude_none=True)
                     else:
-                        response_data = completion_stream
+                        response_data_fallback = completion_stream # Fallback
                     
-                    # Clean text content in the response
-                    if isinstance(response_data, dict) and 'choices' in response_data:
-                        for choice in response_data.get('choices', []):
-                            if isinstance(choice, dict):
-                                if 'delta' in choice and isinstance(choice['delta'], dict) and 'content' in choice['delta']:
-                                    choice['delta']['content'] = clean_text(choice['delta']['content'])
-                                elif 'message' in choice and isinstance(choice['message'], dict) and 'content' in choice['message']:
-                                    choice['message']['content'] = clean_text(choice['message']['content'])
+                    # Clean text content in the fallback response
+                    if isinstance(response_data_fallback, dict) and 'choices' in response_data_fallback:
+                        for choice_item_fallback in response_data_fallback.get('choices', []): # Renamed for clarity
+                            if isinstance(choice_item_fallback, dict):
+                                if 'delta' in choice_item_fallback and isinstance(choice_item_fallback['delta'], dict) and 'content' in choice_item_fallback['delta']:
+                                    choice_item_fallback['delta']['content'] = clean_text(choice_item_fallback['delta']['content'])
+                                elif 'message' in choice_item_fallback and isinstance(choice_item_fallback['message'], dict) and 'content' in choice_item_fallback['message']:
+                                    choice_item_fallback['message']['content'] = clean_text(choice_item_fallback['message']['content'])
                     
-                    yield f"data: {json.dumps(response_data, ensure_ascii=False)}\n\n"
-            else:  # Non-generator response
-                if hasattr(completion_stream, 'model_dump'):
-                    response_data = completion_stream.model_dump(exclude_none=True)
-                elif hasattr(completion_stream, 'dict'):
-                    response_data = completion_stream.dict(exclude_none=True)
-                else:
-                    response_data = completion_stream
-                
-                # Clean text content in the response
-                if isinstance(response_data, dict) and 'choices' in response_data:
-                    for choice in response_data.get('choices', []):
-                        if isinstance(choice, dict):
-                            if 'delta' in choice and isinstance(choice['delta'], dict) and 'content' in choice['delta']:
-                                choice['delta']['content'] = clean_text(choice['delta']['content'])
-                            elif 'message' in choice and isinstance(choice['message'], dict) and 'content' in choice['message']:
-                                choice['message']['content'] = clean_text(choice['message']['content'])
-                
-                yield f"data: {json.dumps(response_data, ensure_ascii=False)}\n\n"
+                    yield f"data: {json.dumps(response_data_fallback, ensure_ascii=False)}\n\n"
 
-        except Exception as e:
-            logger.error(f"Error in streaming response for request {request_id}: {e}")
-            error_message = clean_text(str(e))
+            # This else block handles cases where completion_stream is not directly iterable (e.g., already a single response object)
+            # but the initial check `hasattr(completion_stream, '__iter__')` passed.
+            # This logic might be redundant if the TypeError above catches most non-iterable scenarios.
+            else:  # Non-generator response (or if initial iter check was misleading)
+                if hasattr(completion_stream, 'model_dump'):
+                    response_data_single = completion_stream.model_dump(exclude_none=True)
+                elif hasattr(completion_stream, 'dict'):
+                    response_data_single = completion_stream.dict(exclude_none=True)
+                else:
+                    response_data_single = completion_stream
+                
+                # Clean text content
+                if isinstance(response_data_single, dict) and 'choices' in response_data_single:
+                    for choice_item_single in response_data_single.get('choices', []): # Renamed for clarity
+                        if isinstance(choice_item_single, dict):
+                            if 'delta' in choice_item_single and isinstance(choice_item_single['delta'], dict) and 'content' in choice_item_single['delta']:
+                                choice_item_single['delta']['content'] = clean_text(choice_item_single['delta']['content'])
+                            elif 'message' in choice_item_single and isinstance(choice_item_single['message'], dict) and 'content' in choice_item_single['message']:
+                                choice_item_single['message']['content'] = clean_text(choice_item_single['message']['content'])
+                
+                yield f"data: {json.dumps(response_data_single, ensure_ascii=False)}\n\n"
+
+        except Exception as e: # Catches errors within api.py's streaming logic
+            logger.error(f"Error in API streaming logic for request {request_id}: {e}")
+            error_message = clean_text(str(e)) # Ensure error message is clean
             error_data = {
                 "error": {
                     "message": error_message,

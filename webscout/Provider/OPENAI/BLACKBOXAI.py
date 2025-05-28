@@ -8,6 +8,7 @@ import json # Not used directly in this snippet, but often useful
 import uuid
 import time
 import codecs
+import re # Ensure re is imported at the module level
 
 # Import base classes and utility structures
 from webscout.Provider.OPENAI.base import OpenAICompatibleProvider, BaseChat, BaseCompletions
@@ -39,18 +40,43 @@ def to_data_uri(image_data):
 
     return f"data:{mime_type};base64,{encoded}"
 
-def clean_text(text):
-    """Clean text by removing null bytes and control characters except newlines and tabs."""
-    import re
+def clean_text(text: str) -> str: # Add type hints
     if not isinstance(text, str):
         return text
+
+    # Step 1: Handle specific prefixes observed in BlackboxAI streamed chunks.
+    # These prefixes are 'k(', '@ ', 'H ', '8 '.
+    # Apply this logic first.
+    # Note: This assumes that only one such prefix will occur at the beginning of a text segment.
+    # If multiple prefixes could stack (e.g., "k(@ Hello"), this logic would need adjustment,
+    # but based on current examples, they appear mutually exclusive per chunk.
     
-    # Remove null bytes
-    text = text.replace('\x00', '')
+    # original_text_for_prefix_check = text # Store original for sequential prefix checking if needed, though current logic is fine.
+
+    if text.startswith("k("):
+        text = text[2:]
+    elif text.startswith("@ "): # Important: space after @
+        text = text[2:]
+    elif text.startswith("H "): # Important: space after H
+        text = text[2:]
+    elif text.startswith("8 "): # Important: space after 8
+        text = text[2:]
+    # Add any other confirmed prefixes here in elif clauses.
+
+    # Step 2: Remove specific noise characters like '@' that might still be present
+    # (e.g., if they are not prefixes but appear at the end of words like "Hello!@").
+    # This regex removes '@' if it's preceded by an alphanumeric character or '!'
+    # and is not followed by a non-whitespace character (i.e., it's at the end of a word or before a space).
+    text = re.sub(r'(?<=[a-zA-Z0-9!])@(?![^\s])', '', text)
+
+
+    # Step 3: Apply the original cleaning for null bytes and ASCII control characters.
+    if text is not None: # text could become None if original input was None, though isinstance check handles this.
+        text = text.replace('\x00', '')  # Remove null bytes
+        # This regex matches control characters except \n, \r, \t (newlines, carriage returns, tabs)
+        text = re.sub(r'[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
     
-    # Keep newlines, tabs, and other printable characters, remove other control chars
-    # This regex matches control characters except \n, \r, \t
-    return re.sub(r'[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+    return text
 
 
 class Completions(BaseCompletions):
@@ -233,6 +259,12 @@ class Completions(BaseCompletions):
                 response_bytes = response.content
                 response_text = decoder.decode(response_bytes, final=True)
 
+                # Check for BlackboxAI specific error messages
+                error_messages = ["service has been suspended", "api request failed", "you have reached your request limit"]
+                for error_msg in error_messages:
+                    if error_msg in response_text.lower():
+                        raise IOError(f"BlackboxAI provider error: {error_msg}")
+
                 # Handle possible SSE format in response
                 if "data: " in response_text:
                     # Extract content from SSE format
@@ -240,11 +272,8 @@ class Completions(BaseCompletions):
                     for line in response_text.split('\n'):
                         if line.startswith("data: "):
                             line = line[6:].strip()
-                            if line and not any(error_msg in line.lower() for error_msg in [
-                                "service has been suspended",
-                                "api request failed",
-                                "you have reached your request limit"
-                            ]):
+                            # Secondary check within lines just in case, though primary check above should catch most
+                            if line and not any(error_msg in line.lower() for error_msg in error_messages):
                                 content_lines.append(line)
                     full_content = "".join(content_lines)
                 else:
@@ -252,10 +281,10 @@ class Completions(BaseCompletions):
                     full_content = response_text
             else:
                 # Handle error response
-                raise IOError(f"BlackboxAI request failed with status code {response.status_code}")
+                raise IOError(f"BlackboxAI request failed with status code {response.status_code}: {response.text}")
 
             # Clean and create the completion message
-            cleaned_content = clean_text(full_content)
+            cleaned_content = clean_text(full_content) # clean_text is already applied to full_content
             message = ChatCompletionMessage(
                 role="assistant",
                 content=cleaned_content
@@ -287,8 +316,12 @@ class Completions(BaseCompletions):
 
             return completion
 
-        except Exception as e:
-            raise IOError(f"BlackboxAI request failed: {str(e)}") from e
+        except requests.exceptions.RequestException as e:
+            raise IOError(f"BlackboxAI request failed due to a network error: {str(e)}") from e
+        except IOError: # Re-raise IOErrors (like the one from provider error check)
+            raise
+        except Exception as e: # Catch other unexpected errors
+            raise IOError(f"An unexpected error occurred in BlackboxAI non-streaming request: {str(e)}") from e
         finally:
             if proxies is not None:
                 self._client.session.proxies = original_proxies
@@ -312,6 +345,14 @@ class Completions(BaseCompletions):
         original_proxies = self._client.session.proxies
         if proxies is not None:
             self._client.session.proxies = proxies
+        
+        # Define error messages to check
+        blackbox_error_indicators = [
+            "service has been suspended",
+            "api request failed",
+            "you have reached your request limit"
+        ]
+
         try:
             # Prepare user messages for BlackboxAI API format
             blackbox_messages = []
@@ -358,46 +399,96 @@ class Completions(BaseCompletions):
                 stream=True,
                 timeout=timeout if timeout is not None else self._client.timeout
             )
+            response.raise_for_status() # Will raise HTTPError for bad status codes (4xx or 5xx)
+
             # Blackbox streams as raw text, no line breaks, so chunk manually
             import codecs
             buffer = bytearray()
             decoder = codecs.getincrementaldecoder("utf-8")("replace")
-            chunk_size = 32  # Tune as needed for smoothness
-            from webscout.Provider.OPENAI.utils import ChatCompletionChunk, Choice, ChoiceDelta
-            for chunk in response.iter_content(chunk_size=chunk_size):
-                if not chunk:
+            chunk_size = 128  # Increased chunk_size
+            # from webscout.Provider.OPENAI.utils import ChatCompletionChunk, Choice, ChoiceDelta # Already imported at top level
+
+            for chunk_bytes in response.iter_content(chunk_size=chunk_size):
+                if not chunk_bytes:
                     continue
-                buffer.extend(chunk)
-                # Decode as much as possible (may leave partial chars for next chunk)
-                text = decoder.decode(buffer, final=False)
-                buffer.clear()
+                
+                # It's possible a full error message is in a single chunk
+                try:
+                    potential_error_text_chunk = chunk_bytes.decode("utf-8", errors="replace")
+                    for error_msg_indicator in blackbox_error_indicators:
+                        if error_msg_indicator in potential_error_text_chunk.lower():
+                            # Yield error chunk and stop
+                            error_delta = ChoiceDelta(content=f"BlackboxAI provider error: {error_msg_indicator}", role="assistant")
+                            error_choice = Choice(index=0, delta=error_delta, finish_reason="error")
+                            error_chunk_obj = ChatCompletionChunk(
+                                id=request_id, choices=[error_choice], created=created_time, model=model, system_fingerprint="provider_error"
+                            )
+                            yield error_chunk_obj
+                            return
+                except UnicodeDecodeError:
+                    pass # Will be handled by the incremental decoder below
+
+                buffer.extend(chunk_bytes)
+                text = decoder.decode(buffer, final=False) # Decode as much as possible
+                buffer.clear() # Clear buffer after decoding part of it
+                
                 if text:
-                    cleaned_chunk = clean_text(text)
-                    if cleaned_chunk.strip():
-                        delta = ChoiceDelta(content=cleaned_chunk, role="assistant")
+                    cleaned_text = clean_text(text) # Apply clean_text after decoding
+                    # Check for error messages in the decoded text
+                    for error_msg_indicator in blackbox_error_indicators:
+                        if error_msg_indicator in cleaned_text.lower():
+                            error_delta = ChoiceDelta(content=f"BlackboxAI provider error: {error_msg_indicator}", role="assistant")
+                            error_choice = Choice(index=0, delta=error_delta, finish_reason="error")
+                            error_chunk_obj = ChatCompletionChunk(
+                                id=request_id, choices=[error_choice], created=created_time, model=model, system_fingerprint="provider_error"
+                            )
+                            yield error_chunk_obj
+                            return
+
+                    if cleaned_text.strip(): # Ensure there's actual content
+                        delta = ChoiceDelta(content=cleaned_text, role="assistant")
                         choice = Choice(index=0, delta=delta, finish_reason=None)
                         chunk_obj = ChatCompletionChunk(
-                            id=request_id,
-                            choices=[choice],
-                            created=created_time,
-                            model=model,
-                            system_fingerprint=None
+                            id=request_id, choices=[choice], created=created_time, model=model, system_fingerprint=None
                         )
                         yield chunk_obj
+            
             # Flush any remaining bytes
-            final_text = decoder.decode(b"", final=True)
-            if final_text.strip():
-                cleaned_final = clean_text(final_text)
-                delta = ChoiceDelta(content=cleaned_final, role="assistant")
-                choice = Choice(index=0, delta=delta, finish_reason=None)
-                chunk_obj = ChatCompletionChunk(
-                    id=request_id,
-                    choices=[choice],
-                    created=created_time,
-                    model=model,
-                    system_fingerprint=None
-                )
-                yield chunk_obj
+            final_text_raw = decoder.decode(b"", final=True)
+            if final_text_raw:
+                final_text = clean_text(final_text_raw) # Apply clean_text after final decoding
+                # Check for error messages in the final decoded text
+                for error_msg_indicator in blackbox_error_indicators:
+                    if error_msg_indicator in final_text.lower():
+                        error_delta = ChoiceDelta(content=f"BlackboxAI provider error: {error_msg_indicator}", role="assistant")
+                        error_choice = Choice(index=0, delta=error_delta, finish_reason="error")
+                        error_chunk_obj = ChatCompletionChunk(
+                            id=request_id, choices=[error_choice], created=created_time, model=model, system_fingerprint="provider_error"
+                        )
+                        yield error_chunk_obj
+                        return
+                
+                if final_text.strip(): # Ensure there's actual content
+                    delta = ChoiceDelta(content=final_text, role="assistant")
+                    choice = Choice(index=0, delta=delta, finish_reason="stop") # Typically, the last chunk might indicate 'stop'
+                    chunk_obj = ChatCompletionChunk(
+                        id=request_id, choices=[choice], created=created_time, model=model, system_fingerprint=None
+                    )
+                    yield chunk_obj
+
+        except requests.exceptions.RequestException as e:
+            # Yield error chunk for network-related errors
+            error_message = f"BlackboxAI request failed due to a network error: {str(e)}"
+            error_delta = ChoiceDelta(content=error_message, role="assistant")
+            error_choice = Choice(index=0, delta=error_delta, finish_reason="error")
+            error_chunk_obj = ChatCompletionChunk(
+                id=request_id, choices=[error_choice], created=created_time, model=model, system_fingerprint="network_error"
+            )
+            yield error_chunk_obj
+            return
+        # No general Exception catch here to let other unexpected errors propagate if necessary,
+        # or add one if all errors should be yielded as Chunks.
+        # For now, only RequestException and specific provider errors are yielded as error chunks.
         finally:
             if proxies is not None:
                 self._client.session.proxies = original_proxies
@@ -422,14 +513,9 @@ class BLACKBOXAI(OpenAICompatibleProvider):
     """
     # Default model
     default_model = "GPT-4.1"
-    default_vision_model = default_model
+    default_vision_model = default_model # This was duplicated, keeping one.
     api_endpoint = "https://www.blackbox.ai/api/chat"
     timeout = 30
-
-
-    # Default model (remains the same as per original class)
-    default_model = "GPT-4.1"
-    default_vision_model = default_model
 
     # New OpenRouter models list
     openrouter_models = [
@@ -536,7 +622,7 @@ class BLACKBOXAI(OpenAICompatibleProvider):
         'Llama 4 Scout': {'mode': True, 'id': "meta-llama/llama-4-scout:free", 'name': "Llama 4 Scout"},
         'Mistral 7B Instruct': {'mode': True, 'id': "mistralai/mistral-7b-instruct:free", 'name': "Mistral 7B Instruct"},
         'Mistral Nemo': {'mode': True, 'id': "mistralai/mistral-nemo:free", 'name': "Mistral Nemo"},
-        'Mistral Small 3': {'mode': True, 'id': "mistralai/mistral-small-24b-instruct-2501:free", 'name': "Mistral Small 3"}, # Matches Mistral-Small-24B-Instruct-2501
+        'Mistral Small 3': {'mode': True, 'id': "mistralai/mistral-small-24b-instruct-2501:free", 'name': "Mistral Small 3"}, 
         'Mistral Small 3.1 24B': {'mode': True, 'id': "mistralai/mistral-small-3.1-24b-instruct:free", 'name': "Mistral Small 3.1 24B"},
         'Molmo 7B D': {'mode': True, 'id': "allenai/molmo-7b-d:free", 'name': "Molmo 7B D"},
         'Moonlight 16B A3B Instruct': {'mode': True, 'id': "moonshotai/moonlight-16b-a3b-instruct:free", 'name': "Moonlight 16B A3B Instruct"},
@@ -563,13 +649,13 @@ class BLACKBOXAI(OpenAICompatibleProvider):
         'Grok 3': {'mode': True, 'id': "x-ai/grok-3-beta", 'name': "Grok 3"},
         'Gemini 2.5 Pro': {'mode': True, 'id': "google/gemini-2.5-pro-preview-03-25", 'name': "Gemini 2.5 Pro"},
         'UI-TARS 72B': {'mode': True, 'id': "bytedance-research/ui-tars-72b:free", 'name': "UI-TARS 72B"},
-        'DeepSeek-R1': {'mode': True, 'id': "deepseek-reasoner", 'name': "DeepSeek-R1"}, # This is 'R1' in openrouter, but 'DeepSeek-R1' in base models
+        'DeepSeek-R1': {'mode': True, 'id': "deepseek-reasoner", 'name': "DeepSeek-R1"}, 
         'Mistral-Small-24B-Instruct-2501': {'mode': True, 'id': "mistralai/Mistral-Small-24B-Instruct-2501", 'name': "Mistral-Small-24B-Instruct-2501"},
         # Add default_model if it's not covered and has an agent mode
-        default_model: {'mode': True, 'id': "openai/gpt-4.1", 'name': default_model}, # Assuming GPT-4.1 is agent-compatible
-        'o3-mini': {'mode': True, 'id': "o3-mini", 'name': "o3-mini"}, # Assuming o3-mini is agent-compatible
-        'gpt-4.1-nano': {'mode': True, 'id': "gpt-4.1-nano", 'name': "gpt-4.1-nano"}, # Assuming gpt-4.1-nano is agent-compatible
-        'gpt-4.1-mini': {'mode': True, 'id': "gpt-4.1-mini", 'name': "gpt-4.1-mini"}, # Added agent mode for gpt-4.1-mini
+        default_model: {'mode': True, 'id': "openai/gpt-4.1", 'name': default_model},
+        'o3-mini': {'mode': True, 'id': "o3-mini", 'name': "o3-mini"}, 
+        'gpt-4.1-nano': {'mode': True, 'id': "gpt-4.1-nano", 'name': "gpt-4.1-nano"}, 
+        'gpt-4.1-mini': {'mode': True, 'id': "gpt-4.1-mini", 'name': "gpt-4.1-mini"},
     }
 
     # Trending agent modes

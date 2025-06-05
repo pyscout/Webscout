@@ -323,7 +323,7 @@ class WEBS:
             for r in self._executor.map(_text_api_page, slist):
                 results.extend(r)
         except Exception as e:
-            raise e
+            raise WebscoutE(f"Error during text API search: {e}") from e
 
         return list(islice(results, max_results))
 
@@ -414,7 +414,7 @@ class WEBS:
             for r in self._executor.map(_text_html_page, slist):
                 results.extend(r)
         except Exception as e:
-            raise e
+            raise WebscoutE(f"Error during HTML text search: {e}") from e
 
         return list(islice(results, max_results))
 
@@ -513,7 +513,7 @@ class WEBS:
             for r in self._executor.map(_text_lite_page, slist):
                 results.extend(r)
         except Exception as e:
-            raise e
+            raise WebscoutE(f"Error during lite text search: {e}") from e
 
         return list(islice(results, max_results))
 
@@ -611,7 +611,7 @@ class WEBS:
             for r in self._executor.map(_images_page, slist):
                 results.extend(r)
         except Exception as e:
-            raise e
+            raise WebscoutE(f"Error during image search: {e}") from e
 
         return list(islice(results, max_results))
 
@@ -688,7 +688,7 @@ class WEBS:
             for r in self._executor.map(_videos_page, slist):
                 results.extend(r)
         except Exception as e:
-            raise e
+            raise WebscoutE(f"Error during video search: {e}") from e
 
         return list(islice(results, max_results))
 

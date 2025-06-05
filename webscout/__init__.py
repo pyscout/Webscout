@@ -21,7 +21,7 @@ from .yep_search import *
 # from .litprinter import lit, litprint, ic, install, uninstall
 agent = LitAgent()
 
-__repo__ = "https://github.com/OE-LUCIFER/Webscout"
+__repo__ = "https://github.com/OEvortex/Webscout"
 
 # Add update checker
 from .update_checker import check_for_updates
@@ -30,7 +30,7 @@ try:
     if update_message:
         print(update_message)
 except Exception:
-    pass  # Silently handle any update check errorslently handle any update check errors
+    pass  # Silently handle any update check errors
 
 import logging
 logging.getLogger("webscout").addHandler(logging.NullHandler())

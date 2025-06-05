@@ -1,6 +1,12 @@
-from pkg_resources import get_distribution, DistributionNotFound as PackageNotFoundError
-def get_package_version(package_name: str) -> str:
-    return get_distribution(package_name).version
+try:
+    from importlib.metadata import version, PackageNotFoundError
+    def get_package_version(package_name: str) -> str:
+        return version(package_name)
+except ImportError:
+    # Fallback for Python < 3.8
+    from pkg_resources import get_distribution, DistributionNotFound as PackageNotFoundError
+    def get_package_version(package_name: str) -> str:
+        return get_distribution(package_name).version
 """
 Webscout Update Checker
 >>> from webscout import check_for_updates

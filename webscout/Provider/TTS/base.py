@@ -4,8 +4,19 @@ Base class for TTS providers with common functionality.
 import os
 import tempfile
 from pathlib import Path
-from typing import Generator, Optional
+from typing import Generator, Optional, Union
 from webscout.AIbase import TTSProvider
+
+try:
+    from .openai_utils import TTSResponse, create_tts_response
+except ImportError:
+    # Try absolute import as fallback
+    try:
+        from openai_utils import TTSResponse, create_tts_response
+    except ImportError:
+        # Fallback if openai_utils is not available
+        TTSResponse = None
+        create_tts_response = None
 
 class BaseTTSProvider(TTSProvider):
     """
@@ -15,9 +26,15 @@ class BaseTTSProvider(TTSProvider):
     that can be used by all TTS providers.
     """
     
-    def __init__(self):
-        """Initialize the base TTS provider."""
+    def __init__(self, openai_compatible: bool = True):
+        """
+        Initialize the base TTS provider.
+        
+        Args:
+            openai_compatible: Whether to return OpenAI-compatible responses (default: True)
+        """
         self.temp_dir = tempfile.mkdtemp(prefix="webscout_tts_")
+        self.openai_compatible = openai_compatible
     
     def save_audio(self, audio_file: str, destination: str = None, verbose: bool = False) -> str:
         """
@@ -58,6 +75,48 @@ class BaseTTSProvider(TTSProvider):
             
         return destination
     
+    def create_response(self, audio_file: str, text: str = "", voice: str = "default", model: str = "tts") -> Union[str, TTSResponse]:
+        """
+        Create a response in the appropriate format based on openai_compatible setting.
+        
+        Args:
+            audio_file: Path to the generated audio file
+            text: The original text used for TTS
+            voice: The voice used
+            model: The model used
+            
+        Returns:
+            Either a string path (legacy) or TTSResponse (OpenAI-compatible)
+        """
+        if self.openai_compatible and TTSResponse and create_tts_response:
+            return create_tts_response(
+                model=model,
+                voice=voice,
+                audio_file=audio_file,
+                text=text
+            )
+        else:
+            # Return legacy string format for backward compatibility
+            return audio_file
+    
+    def get_audio_path(self, response: Union[str, TTSResponse]) -> str:
+        """
+        Extract audio file path from response regardless of format.
+        
+        Args:
+            response: Either a string path or TTSResponse object
+            
+        Returns:
+            Path to audio file
+        """
+        if isinstance(response, str):
+            return response
+        elif hasattr(response, 'get_audio_file_path'):
+            return response.get_audio_file_path()
+        elif hasattr(response, 'audio_file'):
+            return response.audio_file
+        else:
+            return str(response)
     def stream_audio(self, text: str, voice: str = None, chunk_size: int = 1024, verbose: bool = False) -> Generator[bytes, None, None]:
         """
         Stream audio in chunks.
@@ -72,7 +131,8 @@ class BaseTTSProvider(TTSProvider):
             Generator[bytes, None, None]: Audio data chunks
         """
         # Generate the audio file
-        audio_file = self.tts(text, voice=voice, verbose=verbose)
+        response = self.tts(text, voice=voice, verbose=verbose)
+        audio_file = self.get_audio_path(response)
         
         # Stream the file in chunks
         with open(audio_file, 'rb') as f:
@@ -88,9 +148,15 @@ class AsyncBaseTTSProvider:
     that can be used by all async TTS providers.
     """
     
-    def __init__(self):
-        """Initialize the async base TTS provider."""
+    def __init__(self, openai_compatible: bool = True):
+        """
+        Initialize the async base TTS provider.
+        
+        Args:
+            openai_compatible: Whether to return OpenAI-compatible responses (default: True)
+        """
         self.temp_dir = tempfile.mkdtemp(prefix="webscout_tts_")
+        self.openai_compatible = openai_compatible
     
     async def save_audio(self, audio_file: str, destination: str = None, verbose: bool = False) -> str:
         """
@@ -132,6 +198,49 @@ class AsyncBaseTTSProvider:
             
         return destination
     
+    def create_response(self, audio_file: str, text: str = "", voice: str = "default", model: str = "tts") -> Union[str, TTSResponse]:
+        """
+        Create a response in the appropriate format based on openai_compatible setting.
+        
+        Args:
+            audio_file: Path to the generated audio file
+            text: The original text used for TTS
+            voice: The voice used
+            model: The model used
+            
+        Returns:
+            Either a string path (legacy) or TTSResponse (OpenAI-compatible)
+        """
+        if self.openai_compatible and TTSResponse and create_tts_response:
+            return create_tts_response(
+                model=model,
+                voice=voice,
+                audio_file=audio_file,
+                text=text
+            )
+        else:
+            # Return legacy string format for backward compatibility
+            return audio_file
+    
+    def get_audio_path(self, response: Union[str, TTSResponse]) -> str:
+        """
+        Extract audio file path from response regardless of format.
+        
+        Args:
+            response: Either a string path or TTSResponse object
+            
+        Returns:
+            Path to audio file
+        """
+        if isinstance(response, str):
+            return response
+        elif hasattr(response, 'get_audio_file_path'):
+            return response.get_audio_file_path()
+        elif hasattr(response, 'audio_file'):
+            return response.audio_file
+        else:
+            return str(response)
+    
     async def stream_audio(self, text: str, voice: str = None, chunk_size: int = 1024, verbose: bool = False):
         """
         Stream audio in chunks asynchronously.
@@ -151,7 +260,8 @@ class AsyncBaseTTSProvider:
             raise ImportError("The 'aiofiles' package is required for async streaming. Install it with 'pip install aiofiles'.")
         
         # Generate the audio file
-        audio_file = await self.tts(text, voice=voice, verbose=verbose)
+        response = await self.tts(text, voice=voice, verbose=verbose)
+        audio_file = self.get_audio_path(response)
         
         # Stream the file in chunks
         async with aiofiles.open(audio_file, 'rb') as f:

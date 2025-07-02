@@ -11,6 +11,7 @@ from webscout.litagent import LitAgent
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from webscout.Provider.TTS import utils
 from webscout.Provider.TTS.base import BaseTTSProvider
+from typing import Union
 
 class OpenAIFMTTS(BaseTTSProvider):
     """
@@ -45,9 +46,16 @@ class OpenAIFMTTS(BaseTTSProvider):
         "Verse": "verse"     # Melodic and rhythmic voice
     }
 
-    def __init__(self, timeout: int = 20, proxies: dict = None):
-        """Initializes the OpenAI.fm TTS client."""
-        super().__init__()
+    def __init__(self, timeout: int = 20, proxies: dict = None, openai_compatible: bool = True):
+        """
+        Initializes the OpenAI.fm TTS client.
+        
+        Args:
+            timeout: Request timeout in seconds
+            proxies: Proxy configuration
+            openai_compatible: Whether to return OpenAI-compatible responses (default: True)
+        """
+        super().__init__(openai_compatible=openai_compatible)
         self.api_url = "https://www.openai.fm/api/generate"
         self.session = requests.Session()
         self.session.headers.update(self.headers)
@@ -55,7 +63,7 @@ class OpenAIFMTTS(BaseTTSProvider):
             self.session.proxies.update(proxies)
         self.timeout = timeout
 
-    def tts(self, text: str, voice: str = "Coral", instructions: str = None, verbose: bool = True) -> str:
+    def tts(self, text: str, voice: str = "Coral", instructions: str = None, verbose: bool = True) -> Union[str, "TTSResponse"]:
         """
         Converts text to speech using the OpenAI.fm API and saves it to a file.
 
@@ -66,7 +74,7 @@ class OpenAIFMTTS(BaseTTSProvider):
             verbose (bool): Whether to print debug information (default: True)
 
         Returns:
-            str: Path to the generated audio file
+            Union[str, TTSResponse]: Path to the generated audio file (legacy) or TTSResponse object (OpenAI-compatible)
 
         Raises:
             exceptions.FailedToGenerateResponseError: If there is an error generating or saving the audio.
@@ -111,7 +119,13 @@ class OpenAIFMTTS(BaseTTSProvider):
             if verbose:
                 print(f"[debug] Audio saved to {filename}")
                 
-            return filename.as_posix()
+            # Create and return response in the appropriate format
+            return self.create_response(
+                audio_file=filename.as_posix(),
+                text=text,
+                voice=voice,
+                model="openai-fm-tts"
+            )
             
         except requests.exceptions.RequestException as e:
             if verbose:

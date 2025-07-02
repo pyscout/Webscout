@@ -229,16 +229,23 @@ class StreamElements(BaseTTSProvider):
         "Naayf",
     ]
 
-    def __init__(self, timeout: int = 20, proxies: dict = None):
-        """Initializes the StreamElements TTS client."""
-        super().__init__()
+    def __init__(self, timeout: int = 20, proxies: dict = None, openai_compatible: bool = True):
+        """
+        Initializes the StreamElements TTS client.
+        
+        Args:
+            timeout: Request timeout in seconds
+            proxies: Proxy configuration  
+            openai_compatible: Whether to return OpenAI-compatible responses (default: True)
+        """
+        super().__init__(openai_compatible=openai_compatible)
         self.session = requests.Session()
         self.session.headers.update(self.headers)
         if proxies:
             self.session.proxies.update(proxies)
         self.timeout = timeout
 
-    def tts(self, text: str, voice: str = "Mathieu", verbose: bool = True) -> str:
+    def tts(self, text: str, voice: str = "Mathieu", verbose: bool = True) -> Union[str, "TTSResponse"]:
         """
         Converts text to speech using the StreamElements API and saves it to a file.
 
@@ -248,7 +255,7 @@ class StreamElements(BaseTTSProvider):
             verbose (bool): Whether to print progress messages (default: True)
 
         Returns:
-            str: Path to the generated audio file
+            Union[str, TTSResponse]: Path to the generated audio file (legacy) or TTSResponse object (OpenAI-compatible)
         """
         assert (
             voice in self.all_voices
@@ -314,7 +321,14 @@ class StreamElements(BaseTTSProvider):
                 f.write(combined_audio.getvalue())
             if verbose:
                 print(f"[debug] Final Audio Saved as {filename}")
-            return filename.as_posix()
+            
+            # Create and return response in the appropriate format
+            return self.create_response(
+                audio_file=filename.as_posix(),
+                text=text,
+                voice=voice,
+                model="streamelements-tts"
+            )
 
         except requests.exceptions.RequestException as e:
             if verbose:

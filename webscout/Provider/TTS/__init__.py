@@ -1,4 +1,5 @@
 from .base import BaseTTSProvider, AsyncBaseTTSProvider
+from .openai_utils import TTSResponse, TTSUsage, create_tts_response
 from .streamElements import *
 from .parler import *
 from .deepgram import *

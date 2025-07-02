@@ -9,8 +9,7 @@ from io import BytesIO
 from webscout import exceptions
 from webscout.litagent import LitAgent
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from webscout.Provider.TTS import utils
-from webscout.Provider.TTS.base import BaseTTSProvider
+from .base import BaseTTSProvider
 from typing import Union
 
 class OpenAIFMTTS(BaseTTSProvider):

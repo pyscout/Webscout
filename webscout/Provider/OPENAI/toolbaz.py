@@ -302,6 +302,7 @@ class Toolbaz(OpenAICompatibleProvider):
         "Llama-4-Maverick",
         "Llama-4-Scout",
         "Llama-3.3-70B",
+        "gpt-oss-120b",
         "Qwen2.5-72B",
         "grok-2-1212",
         "grok-3-beta",

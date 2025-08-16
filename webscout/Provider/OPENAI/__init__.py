@@ -45,6 +45,7 @@ from .MiniMax import *  # Add MiniMaxAI provider
 from .qodo import *  # Add QodoAI provider
 from .kimi import *  # Add Kimi provider
 from .gptoss import *  # Add GPT-OSS provider
+from .refact import *  # Add Refact provider
 # Export auto-proxy functionality
 from .autoproxy import (
     get_auto_proxy,

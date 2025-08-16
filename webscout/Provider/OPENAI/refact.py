@@ -11,6 +11,22 @@ from webscout.Provider.OPENAI.utils import (
     ChatCompletionChunk, ChatCompletion, Choice, ChoiceDelta,
     ChatCompletionMessage, CompletionUsage
 )
+try:
+    from .generate_api_key import generate_full_api_key
+except ImportError:
+    # Fallback: define the function inline if import fails
+    import random
+    import string
+    
+    def generate_api_key_suffix(length: int = 4) -> str:
+        """Generate a random API key suffix like 'C1Z5'"""
+        chars = string.ascii_uppercase + string.digits
+        return ''.join(random.choice(chars) for _ in range(length))
+    
+    def generate_full_api_key(prefix: str = "EU1CW20nX5oau42xBSgm") -> str:
+        """Generate a full API key with a random suffix"""
+        suffix = generate_api_key_suffix(4)
+        return prefix + suffix
 
 try:
     from webscout.litagent import LitAgent
@@ -224,8 +240,10 @@ class Refact(OpenAICompatibleProvider):
             "User-Agent": "refact-lsp 0.10.19",
         }
 
-        if api_key is not None:
+        if api_key:
             self.headers["Authorization"] = f"Bearer {api_key}"
+        else:
+            self.headers["Authorization"] = f"Bearer {generate_full_api_key()}"
 
         # Try to initialize LitAgent for compatibility, but do not alter headers (keep lol.py style)
         try:
@@ -244,7 +262,7 @@ class Refact(OpenAICompatibleProvider):
         return _ModelList()
 
 if __name__ == "__main__":
-    client = Refact(api_key="EU1CW20nX5oau42xBSgmC1Z5")
+    client = Refact()
     response = client.chat.completions.create(
         model="claude-opus-4.1",
         messages=[{"role": "user", "content": "Hello, how are you?"}],

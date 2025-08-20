@@ -155,27 +155,20 @@ class ChatGLM(Provider):
                     data=response.iter_content(chunk_size=None),
                     intro_value="data:",
                     to_json=True,
-                    extract_regexes=[
-                        # Extract only the value of delta_content or edit_content (handle escaped quotes and newlines)
-                        r'"delta_content"\s*:\s*"((?:[^"\\]|\\.)*)"',
-                        r'"edit_content"\s*:\s*"((?:[^"\\]|\\.)*)"'
-                    ],
-                    skip_regexes=[
-                        r'<details[^>]*>.*?</details>',
-                        r'<summary>.*?</summary>',
-                        r'<[^>]+>',
-                        r'^\s*$'
-                    ],
+                    content_extractor=lambda chunk: (
+                        chunk.get("data", {}).get("edit_content")
+                        or chunk.get("data", {}).get("delta_content")
+                        if isinstance(chunk, dict)
+                        and chunk.get("type") == "chat:completion"
+                        and chunk.get("data", {}).get("phase") == "answer"
+                        else None
+                    ),
                     yield_raw_on_error=False,
                     raw=raw
                 )
                 for content_chunk in processed_stream:
                     if content_chunk and isinstance(content_chunk, str):
                         streaming_text += content_chunk
-                        if raw:
-                            yield content_chunk
-                        else:
-                            yield dict(text=content_chunk)
                         if raw:
                             yield content_chunk
                         else:

@@ -1,13 +1,11 @@
-from curl_cffi import CurlError
-from curl_cffi.requests import Session
-from typing import Any, Dict, Optional, Generator, List, Union
-import uuid
-from webscout.AIutel import Optimizers
-from webscout.AIutel import Conversation
-from webscout.AIutel import AwesomePrompts, sanitize_stream # Import sanitize_stream
+import json
+from typing import Union, Any, Dict, Generator, Optional
+
+import cloudscraper
+
+from webscout.AIutel import Optimizers, Conversation, AwesomePrompts
 from webscout.AIbase import Provider
 from webscout import exceptions
-from webscout.litagent import LitAgent
 
 
 class ChatGLM(Provider):
@@ -15,45 +13,62 @@ class ChatGLM(Provider):
     A class to interact with the Z.AI Chat API (GLM-4.5).
     """
 
-    url = "https://chat.z.ai"
-    models = ['GLM-4.5', 'GLM-4.5-Air', 'GLM-4.5V', 'GLM-4-32B', 'GLM-4.1V-9B-Thinking', 'Z1-Rumination', 'Z1-32B', '任务专用']
+    AVAILABLE_MODELS = [
+        'GLM-4.5', 'GLM-4.5-Air', 'GLM-4.5V', 'GLM-4-32B',
+        'GLM-4.1V-9B-Thinking', 'Z1-Rumination', 'Z1-32B', '任务专用'
+    ]
 
     def __init__(
         self,
+        cookies_path: str,
         is_conversation: bool = True,
         max_tokens: int = 600,
         timeout: int = 30,
-        intro: str = None,
-        filepath: str = None,
+        intro: Optional[str] = None,
+        filepath: Optional[str] = None,
         update_file: bool = True,
         proxies: dict = {},
         history_offset: int = 10250,
-        act: str = None,
-        model: str = None,
+        act: Optional[str] = None,
+        model: str = "GLM-4.5-Air",
+        system_prompt: str = "You are a helpful AI assistant."
     ):
         """Initializes the Z.AI Chat API client."""
-        self.session = Session()
+        if model not in self.AVAILABLE_MODELS:
+            raise ValueError(
+                f"Invalid model: {model}. Choose from: {self.AVAILABLE_MODELS}"
+            )
+
+        self.session = cloudscraper.create_scraper()
         self.is_conversation = is_conversation
         self.max_tokens_to_sample = max_tokens
+        self.api_endpoint = "https://chat.z.ai/api/chat/completions"
+        self.stream_chunk_size = 64
         self.timeout = timeout
         self.last_response = {}
+        self.model = model
+        self.system_prompt = system_prompt
+        self.cookies_path = cookies_path
+        self.cookie_string, self.token = self._load_cookies()
+
         self.headers = {
-            'Accept-Language': 'en-US,en;q=0.9',
-            'App-Name': 'chatglm',
-            'Content-Type': 'application/json',
-            'Origin': self.url,
-            'User-Agent': LitAgent().random(),
-            'X-App-Platform': 'pc',
-            'X-App-Version': '0.0.1',
-            'Accept': 'text/event-stream',
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "application/json",
+            "origin": "https://chat.z.ai",
+            "referer": "https://chat.z.ai/",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36 Edg/127.0.0.0",
+            "authorization": f"Bearer {self.token}" if self.token else '',
         }
-        self.api_endpoint = f"{self.url}/api/chat/completions" 
+        self.session.headers.update(self.headers)
+        self.session.proxies = proxies
+
         self.__available_optimizers = (
             method
             for method in dir(Optimizers)
-            if callable(getattr(Optimizers, method)) and not method.startswith("__")
+            if callable(getattr(Optimizers, method))
+            and not method.startswith("__")
         )
-        self.session.headers.update(self.headers)
         Conversation.intro = (
             AwesomePrompts().get_act(
                 act, raise_not_found=True, default=None, case_insensitive=True
@@ -65,8 +80,6 @@ class ChatGLM(Provider):
             is_conversation, self.max_tokens_to_sample, filepath, update_file
         )
         self.conversation.history_offset = history_offset
-        self.session.proxies = proxies
-        self.model = model
 
     @classmethod
     def get_models(cls, **kwargs) -> List[str]:

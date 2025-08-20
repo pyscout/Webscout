@@ -151,24 +151,33 @@ class ChatGLM(Provider):
                 )
                 response.raise_for_status()
 
+                def glm_content_extractor(chunk):
+                    if not isinstance(chunk, dict) or chunk.get("type") != "chat:completion":
+                        return None
+                    data = chunk.get("data", {})
+                    phase = data.get("phase")
+                    # Usage info
+                    usage = data.get("usage")
+                    if usage:
+                        return None  # Usage objects can be handled separately if needed
+                    # Always extract delta_content for any phase
+                    delta_content = data.get("delta_content")
+                    if delta_content:
+                        # Remove details/summary tags if present
+                        split_text = delta_content.split("</summary>\n>")[-1]
+                        return split_text
+                    return None
+
                 processed_stream = sanitize_stream(
                     data=response.iter_content(chunk_size=None),
                     intro_value="data:",
                     to_json=True,
-                    content_extractor=lambda chunk: (
-                        chunk.get("data", {}).get("edit_content")
-                        or chunk.get("data", {}).get("delta_content")
-                        if isinstance(chunk, dict)
-                        and chunk.get("type") == "chat:completion"
-                        and chunk.get("data", {}).get("phase") == "answer"
-                        else None
-                    ),
+                    content_extractor=glm_content_extractor,
                     yield_raw_on_error=False,
                     raw=raw
                 )
                 for content_chunk in processed_stream:
                     if content_chunk and isinstance(content_chunk, str):
-                        streaming_text += content_chunk
                         if raw:
                             yield content_chunk
                         else:

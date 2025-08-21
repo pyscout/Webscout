@@ -16,14 +16,31 @@ class ChatGLM(Provider):
     """
 
     url = "https://chat.z.ai"
-    AVAILABLE_MODELS = [
-        "0727-106B-API",
-        "0727-360B-API",
-        "glm-4.5v",
-        "main_chat"
+    # Model nickname mapping system
+    MODEL_MAPPING = {
+        "glm-4.5V": "glm-4.5v",
+        "glm-4-32B": "main_chat",
+        "glm-4.5-Air": "0727-106B-API",
+        "glm-4.5": "0727-360B-API",
+        # Add more nicknames as needed
+    }
+    # Reverse mapping: API format to nickname
+    GLM_TO_MODEL = {v: k for k, v in MODEL_MAPPING.items()}
+    AVAILABLE_MODELS = list(MODEL_MAPPING.keys()) + list(GLM_TO_MODEL.keys()) + ["0727-106B-API", "0727-360B-API", "glm-4.5v", "main_chat"]
 
-
-    ]
+    @classmethod
+    def _resolve_model(cls, model: str) -> str:
+        """
+        Resolve a model nickname or API name to the API format.
+        """
+        if model in cls.GLM_TO_MODEL:
+            return model
+        if model in cls.MODEL_MAPPING:
+            return cls.MODEL_MAPPING[model]
+        # fallback to direct API name if present
+        if model in ["0727-106B-API", "0727-360B-API", "glm-4.5v", "main_chat"]:
+            return model
+        raise ValueError(f"Invalid model: {model}. Choose from: {cls.AVAILABLE_MODELS}")
     def __init__(
         self,
         is_conversation: bool = True,
@@ -72,7 +89,8 @@ class ChatGLM(Provider):
         )
         self.conversation.history_offset = history_offset
         self.session.proxies = proxies
-        self.model = model
+        # Use nickname resolution for model
+        self.model = self._resolve_model(model)
 
     def _get_api_key(self):
         if not hasattr(self, 'api_key') or not self.api_key:
@@ -123,7 +141,7 @@ class ChatGLM(Provider):
         api_key = self._get_api_key()
         payload = {
             "stream": True,
-            "model": self.model,
+            "model": self.model,  # Already resolved to API format
             "messages": [
                 {"role": "user", "content": conversation_prompt}
             ],
@@ -278,7 +296,7 @@ class ChatGLM(Provider):
 
 if __name__ == "__main__":
     from rich import print
-    ai = ChatGLM()
+    ai = ChatGLM(model="glm-4-32B")
     response = ai.chat("hi", stream=True, raw=False)
     for chunk in response:
         print(chunk, end="", flush=True)

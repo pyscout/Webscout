@@ -2,8 +2,6 @@ from curl_cffi import CurlError
 from curl_cffi.requests import Session
 from typing import Any, Dict, Optional, Generator, List, Union
 import uuid
-
-from sqlalchemy import True_
 from webscout.AIutel import Optimizers
 from webscout.AIutel import Conversation
 from webscout.AIutel import AwesomePrompts, sanitize_stream # Import sanitize_stream
@@ -20,7 +18,11 @@ class ChatGLM(Provider):
     url = "https://chat.z.ai"
     AVAILABLE_MODELS = [
         "0727-106B-API",
-        "0727-360B-API"
+        "0727-360B-API",
+        "glm-4.5v",
+        "main_chat"
+
+
     ]
     def __init__(
         self,
@@ -135,7 +137,6 @@ class ChatGLM(Provider):
 
         def for_stream():
             streaming_text = ""
-            last_processed_content = ""
             try:
                 cookie = self._get_cookie()
                 response = self.session.post(
@@ -156,16 +157,19 @@ class ChatGLM(Provider):
                         return None
                     data = chunk.get("data", {})
                     phase = data.get("phase")
-                    # Usage info
                     usage = data.get("usage")
                     if usage:
-                        return None  # Usage objects can be handled separately if needed
-                    # Always extract delta_content for any phase
+                        return None
                     delta_content = data.get("delta_content")
                     if delta_content:
-                        # Remove details/summary tags if present
-                        split_text = delta_content.split("</summary>\n>")[-1]
-                        return split_text
+                        if phase == "thinking":
+                            # Remove details/summary tags if present
+                            split_text = delta_content.split("</summary>\n>")[-1]
+                            return {"reasoning_content": split_text}
+                        elif phase == "answer":
+                            return {"content": delta_content}
+                        else:
+                            return {"content": delta_content}
                     return None
 
                 processed_stream = sanitize_stream(
@@ -174,25 +178,39 @@ class ChatGLM(Provider):
                     to_json=True,
                     content_extractor=glm_content_extractor,
                     yield_raw_on_error=False,
-                    raw=raw
+                    raw=False
                 )
-                for content_chunk in processed_stream:
-                    if content_chunk and isinstance(content_chunk, str):
-                        if raw:
-                            yield content_chunk
-                        else:
-                            yield dict(text=content_chunk)
-
+                last_content = ""
+                last_reasoning = ""
+                in_think = False
+                for chunk in processed_stream:
+                    if not chunk:
+                        continue
+                    content = chunk.get('content') if isinstance(chunk, dict) else None
+                    reasoning = chunk.get('reasoning_content') if isinstance(chunk, dict) else None
+                    # Handle reasoning_content with <think> tags
+                    if reasoning and reasoning != last_reasoning:
+                        if not in_think:
+                            yield "<think>\n\n"
+                            in_think = True
+                        yield reasoning
+                        last_reasoning = reasoning
+                    # If we were in <think> and now have new content, close <think>
+                    if in_think and content and content != last_content:
+                        yield "\n</think>\n\n"
+                        in_think = False
+                    # Handle normal content
+                    if content and content != last_content:
+                        yield content
+                        streaming_text += content
+                        last_content = content
+                if not raw:
+                    self.last_response = {"text": content}
+                    self.conversation.update_chat_history(prompt, streaming_text)
             except CurlError as e:
                 raise exceptions.APIConnectionError(f"Request failed (CurlError): {e}") from e
             except Exception as e:
                 raise exceptions.FailedToGenerateResponseError(f"An unexpected error occurred ({type(e).__name__}): {e}") from e
-            finally:
-                if streaming_text:
-                    self.last_response.update(dict(text=streaming_text))
-                    self.conversation.update_chat_history(
-                        prompt, self.get_message(self.last_response)
-                    )
 
         def for_non_stream():
             full_text = ""
@@ -229,7 +247,11 @@ class ChatGLM(Provider):
                 if raw:
                     yield response
                 else:
-                    yield self.get_message(response)
+                    # Only call get_message on dicts, yield str directly
+                    if isinstance(response, dict):
+                        yield self.get_message(response)
+                    elif isinstance(response, str):
+                        yield response
 
         def for_non_stream():
             result = self.ask(

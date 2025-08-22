@@ -22,6 +22,7 @@ def timeIt(func: Callable):
         start_time = time.time()
         result = func(*args, **kwargs)
         end_time = time.time()
+        print()
         print(f"{GREEN_BOLD}- Execution time for '{func.__name__}' : {end_time - start_time:.6f} Seconds.  {RESET}\n")
         return result
 
@@ -30,6 +31,7 @@ def timeIt(func: Callable):
         start_time = time.time()
         result = await func(*args, **kwargs)
         end_time = time.time()
+        print()
         print(f"{GREEN_BOLD}- Execution time for '{func.__name__}' : {end_time - start_time:.6f} Seconds.  {RESET}\n")
         return result
 

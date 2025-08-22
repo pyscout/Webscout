@@ -225,6 +225,7 @@ class DeepInfra(OpenAICompatibleProvider):
         "microsoft/Phi-4-multimodal-instruct",
         "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
         "deepseek-ai/DeepSeek-V3",
+        "deepseek-ai/DeepSeek-V3.1",
         "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         "meta-llama/Llama-3.3-70B-Instruct",
         "microsoft/phi-4",

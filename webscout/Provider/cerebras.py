@@ -35,7 +35,10 @@ class Cerebras(Provider):
         "qwen-3-235b-a22b-thinking-2507",
         "qwen-3-32b",
         "llama-3.3-70b",
-        "llama-4-maverick-17b-128e-instruct"
+        "llama-4-maverick-17b-128e-instruct",
+        "gpt-oss-120b",
+        "llama-4-scout-17b-16e-instruct",
+        "llama3.1-8b"
     ]
 
     def __init__(

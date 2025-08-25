@@ -220,7 +220,10 @@ class HeckAI(OpenAICompatibleProvider):
         "openai/gpt-4o-mini",
         "openai/gpt-4.1-mini",
         "x-ai/grok-3-mini-beta",
-        "meta-llama/llama-4-scout"
+        "meta-llama/llama-4-scout",
+        "openai/gpt-5-mini",
+        "openai/gpt-5-nano"
+
     ]
 
     def __init__(

@@ -43,7 +43,11 @@ class HeckAI(Provider):
         "openai/gpt-4o-mini",
         "openai/gpt-4.1-mini",
         "x-ai/grok-3-mini-beta",
-        "meta-llama/llama-4-scout"
+        "meta-llama/llama-4-scout",
+        "openai/gpt-5-mini",
+        "openai/gpt-5-nano"
+
+
     ]
 
     def __init__(
@@ -374,7 +378,7 @@ if __name__ == "__main__":
     #     except Exception as e:
     #         print(f"\r{model:<50} {'✗':<10} {str(e)}")
     from rich import print
-    ai = HeckAI()
-    response = ai.chat("tell me about humans", stream=True, raw=False)
+    ai = HeckAI(model="openai/gpt-5-nano")
+    response = ai.chat("tell me about humans", stream=True, raw=True)
     for chunk in response:
         print(chunk, end='', flush=True)

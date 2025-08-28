@@ -126,3 +126,9 @@ class sms_message:
         self.content = content
         self.frm = frm
         self.time = time
+
+if __name__ == "__main__":
+    number = VNEngine()
+    phone = number.get_country_numbers("ukraine")
+    for p in phone:
+       print(p)

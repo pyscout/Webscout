@@ -16,7 +16,7 @@ class TextPollinationsAI(Provider):
 
     AVAILABLE_MODELS = [
         "deepseek-reasoning",
-        "glm",
+        "gemini",
         "gpt-5-nano",
         "llama-fast-roblox",
         "llama-roblox",
@@ -29,11 +29,12 @@ class TextPollinationsAI(Provider):
         "openai-audio",
         "openai-fast",
         "openai-large",
+        "openai-reasoning",
         "openai-roblox",
         "qwen-coder",
+        "roblox-rp",
         "bidara",
         "evil",
-        "hypnosis-tracy",
         "midijourney",
         "mirexa",
         "rtist",

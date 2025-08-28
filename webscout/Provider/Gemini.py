@@ -28,7 +28,7 @@ class GEMINI(Provider):
     def __init__(
         self,
         cookie_file: str,
-        model: str = "flash",  # Accepts either a Model enum or a str alias.
+        model: str = "gemini-2.5-flash",  # Accepts either a Model enum or a str alias.
         proxy: dict = {},
         timeout: int = 30,
     ):

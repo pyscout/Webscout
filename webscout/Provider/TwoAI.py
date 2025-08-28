@@ -227,7 +227,6 @@ class TwoAI(Provider):
 
                 if not content:
                     continue
-
                 # Look for the API key pattern in the email content
                 # First, try to find the API key directly
                 api_key_match = re.search(r'sutra_[A-Za-z0-9]{60,70}', content)

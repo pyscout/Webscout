@@ -366,7 +366,7 @@ if __name__ == "__main__":
     #     except Exception as e:
     #         print(f"{model:<50} {'✗':<10} {str(e)}")
     ai = YEPCHAT(model="DeepSeek-R1-Distill-Qwen-32B", timeout=60)
-    response = ai.chat("Say 'Hello' in one word", raw=True, stream=True)
+    response = ai.chat("Say 'Hello' in one word", raw=False, stream=True)
     for chunk in response:
 
         print(chunk, end='', flush=True)

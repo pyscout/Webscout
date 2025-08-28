@@ -75,7 +75,6 @@ from .FreeGemini import FreeGemini
 from .Flowith import Flowith
 from .lmarena import lmarena
 from .oivscode import oivscode
-from .XenAI import XenAI
 from .deepseek_assistant import DeepSeekAssistant
 from .GeminiProxy import GeminiProxy
 from .TogetherAI import TogetherAI
@@ -84,3 +83,7 @@ from .Qodo import *
 from .monochat import MonoChat
 from .Kimi import Kimi
 from .GptOss import GptOss
+#######################
+## Removed Providers ##
+#######################
+# from .UNFINISHED.XenAI import XenAI

@@ -14,7 +14,7 @@ jobs:
     if: github.event.label.name == 'bug'
     steps:
       - name: Assign Copilot to bug report
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

@@ -213,20 +213,72 @@ class SciraAI(Provider):
 
     @staticmethod
     def _scira_extractor(chunk: Union[str, Dict[str, Any]]) -> Optional[dict]:
-        """Extracts g and 0 chunks from the Scira stream format.
-        Returns a dict: {"g": [g1, g2, ...], "0": zero} if present.
+        """Extracts content from the Scira stream format.
+        Handles both old format (g:"..." and 0:"...") and new JSON format.
+        Returns a dict: {"g": [g1, g2, ...], "0": zero} for old format,
+        or {"g": [reasoning_text...], "0": final_text} for new format.
         """
+        result = {}
+        
         if isinstance(chunk, str):
+            # Handle old format with regex patterns
             g_matches = re.findall(r'g:"(.*?)"', chunk)
             zero_match = re.search(r'0:"(.*?)"(?=,|$)', chunk)
-            result = {}
+            
             if g_matches:
                 result["g"] = [g.encode().decode('unicode_escape').replace('\\', '\\').replace('\\"', '"') for g in g_matches]
             if zero_match:
                 result["0"] = zero_match.group(1).encode().decode('unicode_escape').replace('\\', '\\').replace('\\"', '"')
-            if result:
-                return result
-        return None
+            
+            # Also try to parse as JSON for new format
+            try:
+                # Remove 'data: ' prefix if present
+                json_str = chunk.strip()
+                if json_str.startswith('data: '):
+                    json_str = json_str[6:]
+                
+                # Skip empty lines and special markers
+                if not json_str or json_str == '[DONE]':
+                    return None
+                
+                # Parse JSON
+                data = json.loads(json_str)
+                if isinstance(data, dict):
+                    # Handle new JSON format
+                    if data.get("type") == "reasoning-delta" and "delta" in data:
+                        # Reasoning content (thinking)
+                        result["g"] = [data["delta"]]
+                    elif data.get("type") == "text-delta" and "delta" in data:
+                        # Final answer content (new format)
+                        result["0"] = data["delta"]
+                    elif data.get("type") == "delta" and "content" in data:
+                        # Alternative final answer format
+                        result["0"] = data["content"]
+                    elif data.get("type") == "content" and "content" in data:
+                        # Alternative content format
+                        result["0"] = data["content"]
+                    # Handle other response types like start, start-step, etc. (ignore for now)
+                        
+            except (json.JSONDecodeError, KeyError):
+                # Not valid JSON or doesn't match expected structure
+                pass
+                
+        elif isinstance(chunk, dict):
+            # Direct dict input (new JSON format)
+            if chunk.get("type") == "reasoning-delta" and "delta" in chunk:
+                # Reasoning content (thinking)
+                result["g"] = [chunk["delta"]]
+            elif chunk.get("type") == "text-delta" and "delta" in chunk:
+                # Final answer content (new format)
+                result["0"] = chunk["delta"]
+            elif chunk.get("type") == "delta" and "content" in chunk:
+                # Alternative final answer format
+                result["0"] = chunk["content"]
+            elif chunk.get("type") == "content" and "content" in chunk:
+                # Alternative content format
+                result["0"] = chunk["content"]
+        
+        return result if result else None
 
     def ask(
         self,
@@ -295,7 +347,7 @@ class SciraAI(Provider):
                 processed_stream = sanitize_stream(
                     data=response.iter_content(chunk_size=None),
                     intro_value=None,
-                    to_json=False,
+                    to_json=True,  # Enable JSON parsing for new format
                     content_extractor=self._scira_extractor,
                     raw=raw
                 )

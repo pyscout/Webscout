@@ -16,6 +16,25 @@ class DeepInfra(Provider):
     A class to interact with the DeepInfra API with LitAgent user-agent.
     """
 
+    # Model aliases for better user experience
+    MODEL_ALIASES = {
+        # Claude model aliases
+        "claude-3.5-sonnet": "anthropic/claude-3-7-sonnet-latest",
+        "claude-3-5-sonnet": "anthropic/claude-3-7-sonnet-latest", 
+        "claude-sonnet": "anthropic/claude-4-sonnet",
+        "claude-opus": "anthropic/claude-4-opus",
+        "claude-4": "anthropic/claude-4-sonnet",
+        "claude-4-opus": "anthropic/claude-4-opus",
+        "claude-4-sonnet": "anthropic/claude-4-sonnet",
+        "anthropic/claude-3.5-sonnet": "anthropic/claude-3-7-sonnet-latest",
+        "anthropic/claude-3-5-sonnet": "anthropic/claude-3-7-sonnet-latest",
+        
+        # Other common aliases can be added here
+        "gpt-4": "meta-llama/Llama-3.3-70B-Instruct-Turbo",  # Default to best available
+        "llama3": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        "llama-3": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    }
+
     AVAILABLE_MODELS = [
         "anthropic/claude-4-opus",
         "moonshotai/Kimi-K2-Instruct",
@@ -116,8 +135,15 @@ class DeepInfra(Provider):
         browser: str = "chrome" # Note: browser fingerprinting might be less effective with impersonate
     ):
         """Initializes the DeepInfra API client."""
+        # Resolve model aliases
+        original_model = model
+        if model in self.MODEL_ALIASES:
+            model = self.MODEL_ALIASES[model]
+            print(f"Model alias '{original_model}' resolved to '{model}'")
+        
         if model not in self.AVAILABLE_MODELS:
-            raise ValueError(f"Invalid model: {model}. Choose from: {self.AVAILABLE_MODELS}")
+            available_with_aliases = list(self.AVAILABLE_MODELS) + list(self.MODEL_ALIASES.keys())
+            raise ValueError(f"Invalid model: {original_model}. Choose from: {available_with_aliases}")
 
         self.url = "https://api.deepinfra.com/v1/openai/chat/completions"
 
@@ -343,6 +369,35 @@ class DeepInfra(Provider):
     def get_message(self, response: dict) -> str:
         assert isinstance(response, dict), "Response should be of dict data-type only"
         return response["text"]
+    
+    @classmethod
+    def get_available_models(cls, include_aliases: bool = True) -> list:
+        """
+        Get list of available models, optionally including aliases.
+        
+        Args:
+            include_aliases: Whether to include model aliases in the list
+            
+        Returns:
+            List of available model names
+        """
+        models = list(cls.AVAILABLE_MODELS)
+        if include_aliases:
+            models.extend(list(cls.MODEL_ALIASES.keys()))
+        return sorted(models)
+    
+    @classmethod
+    def resolve_model_alias(cls, model: str) -> str:
+        """
+        Resolve a model alias to the actual model name.
+        
+        Args:
+            model: Model name or alias
+            
+        Returns:
+            Actual model name (unchanged if not an alias)
+        """
+        return cls.MODEL_ALIASES.get(model, model)
 
 if __name__ == "__main__":
     # Ensure curl_cffi is installed

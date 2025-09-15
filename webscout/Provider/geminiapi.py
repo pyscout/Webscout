@@ -19,7 +19,7 @@ class GEMINIAPI(Provider):
     """
     A class to interact with the Gemini API using the google-generativeai library.
     """
-
+    required_auth = True
     def __init__(
         self,
         api_key,

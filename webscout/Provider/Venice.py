@@ -17,6 +17,7 @@ class Venice(Provider):
     A class to interact with the Venice AI API.
     """
     
+    required_auth = False
     AVAILABLE_MODELS = [
         "mistral-31-24b",
         "dolphin-3.0-mistral-24b",

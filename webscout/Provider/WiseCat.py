@@ -17,6 +17,7 @@ class WiseCat(Provider):
     A class to interact with the WiseCat API.
     """
 
+    required_auth = False
     AVAILABLE_MODELS = [
         "chat-model-small",
         # "chat-model-large", # >>> NOT WORKING <<<

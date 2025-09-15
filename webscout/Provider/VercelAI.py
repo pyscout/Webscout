@@ -18,6 +18,7 @@ class VercelAI(Provider):
     A class to interact with the Vercel AI API.
     """
 
+    required_auth = False
     AVAILABLE_MODELS = [
         "chat-model",
         "chat-model-reasoning"

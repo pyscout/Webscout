@@ -1,16 +1,15 @@
 import requests
-import json
 import random
 import datetime
-from typing import Any, Dict, Optional, Union, Generator
-from webscout.AIutel import Optimizers, Conversation, AwesomePrompts, sanitize_stream
+from typing import Any, Dict, Union, Generator
+from webscout.AIutel import Optimizers, Conversation, AwesomePrompts
 from webscout.AIbase import Provider
 from webscout import exceptions
 
 class NEMOTRON(Provider):
     """NEMOTRON provider for interacting with the nemotron.one API."""
     url = "https://nemotron.one/api/chat"
-
+    required_auth = False
     AVAILABLE_MODELS = [
         "gpt4o",
         "nemotron70b",

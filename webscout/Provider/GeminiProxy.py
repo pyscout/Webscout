@@ -11,6 +11,7 @@ class GeminiProxy(Provider):
     """
     GeminiProxy is a provider class for interacting with the Gemini API via a proxy endpoint.
     """
+    required_auth = False
     AVAILABLE_MODELS = [
         "gemini-2.0-flash-lite",
         "gemini-2.0-flash",

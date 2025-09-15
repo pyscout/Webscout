@@ -251,10 +251,9 @@ class Qwen3(OpenAICompatibleProvider):
         "qwen-3-0.6b": "qwen3-0.6b"
     }
 
-    def __init__(self):
+    def __init__(self, proxies: Optional[Dict[str, str]] = None):
+        super().__init__(proxies=proxies)
         self.timeout = 30
-        self.session = requests.Session()
-        self.session.proxies = {}
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0',
             'Accept': '*/*',

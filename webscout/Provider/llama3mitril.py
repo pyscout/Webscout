@@ -13,7 +13,7 @@ class Llama3Mitril(Provider):
     """
     A class to interact with the Llama3 Mitril API. Implements the WebScout provider interface.
     """
-
+    required_auth = False
     def __init__(
         self,
         is_conversation: bool = True,

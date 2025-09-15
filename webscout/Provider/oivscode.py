@@ -1,9 +1,8 @@
 import secrets
 import requests
-import json
 import random
 import string
-from typing import Union, Any, Dict, Optional, Generator
+from typing import Union, Any, Dict, Generator
 
 from webscout.AIutel import Optimizers
 from webscout.AIutel import Conversation
@@ -16,6 +15,7 @@ class oivscode(Provider):
     """
     A class to interact with a test API.
     """
+    required_auth = False
     AVAILABLE_MODELS = [
         "*",
         "Qwen/Qwen2.5-72B-Instruct-Turbo",

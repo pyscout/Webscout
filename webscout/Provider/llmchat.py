@@ -14,7 +14,7 @@ class LLMChat(Provider):
     """
     A class to interact with the LLMChat API
     """
-
+    required_auth = False
     AVAILABLE_MODELS = [
         "@cf/meta/llama-3.1-70b-instruct",
         "@cf/meta/llama-3.1-8b-instruct",

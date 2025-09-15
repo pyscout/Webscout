@@ -373,7 +373,8 @@ class ChatGPTClone(OpenAICompatibleProvider):
     def __init__(
         self,
         browser: str = "chrome",
-        impersonate: str = "chrome120"
+        impersonate: str = "chrome120",
+        proxies: Optional[Dict[str, str]] = None
     ):
         """
         Initialize the ChatGPTClone client.
@@ -381,14 +382,12 @@ class ChatGPTClone(OpenAICompatibleProvider):
         Args:
             browser: Browser to emulate in user agent (for LitAgent fallback)
             impersonate: Browser impersonation for curl_cffi (default: chrome120)
+            proxies: Optional proxy configuration dict, e.g. {"http": "http://proxy:8080", "https": "https://proxy:8080"}
         """
+        super().__init__(proxies=proxies)
         self.timeout = 30
         self.temperature = 0.6  # Default temperature
         self.top_p = 0.7  # Default top_p
-
-        # Use curl_cffi for Cloudflare bypass and browser impersonation
-        self.session = Session(impersonate=impersonate)
-        self.session.proxies = {}
 
         # Use LitAgent for fingerprint if available, else fallback
         agent = LitAgent()
@@ -520,5 +519,3 @@ if __name__ == "__main__":
     )
     print(response.choices[0].message.content)
     print()
-    print("Proxies on instance:", client.proxies)
-    print("Proxies on session:", client.session.proxies)

@@ -10,6 +10,7 @@ except ImportError as e:
     pass
 
 class OLLAMA(Provider):
+    required_auth = True
     def __init__(
         self,
         model: str = 'qwen2:0.5b',

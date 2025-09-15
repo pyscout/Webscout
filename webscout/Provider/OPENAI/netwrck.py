@@ -204,6 +204,7 @@ class Netwrck(OpenAICompatibleProvider):
 
     AVAILABLE_MODELS = [
         "thedrummer/valkyrie-49b-v1",
+        "thedrummer/skyfall-36b-v2",
         "sao10k/l3-euryale-70b",
         "deepseek/deepseek-chat",
         "deepseek/deepseek-r1",

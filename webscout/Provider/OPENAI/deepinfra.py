@@ -195,9 +195,10 @@ class Chat(BaseChat):
 
 class DeepInfra(OpenAICompatibleProvider):
     AVAILABLE_MODELS = [
-        "anthropic/claude-4-opus",
         "moonshotai/Kimi-K2-Instruct",
-        "anthropic/claude-4-sonnet",
+        "Qwen/Qwen3-Next-80B-A3B-Instruct",
+        "Qwen/Qwen3-Next-80B-A3B-Thinking",
+        "moonshotai/Kimi-K2-Instruct-0905",
         "deepseek-ai/DeepSeek-R1-0528-Turbo",
         "Qwen/Qwen3-235B-A22B-Thinking-2507",
         "Qwen/Qwen3-Coder-480B-A35B-Instruct",
@@ -217,8 +218,6 @@ class DeepInfra(OpenAICompatibleProvider):
         "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
         "microsoft/phi-4-reasoning-plus",
         "Qwen/QwQ-32B",
-        "google/gemini-2.5-flash",
-        "google/gemini-2.5-pro",
         "google/gemma-3-27b-it",
         "google/gemma-3-12b-it",
         "google/gemma-3-4b-it",
@@ -239,7 +238,6 @@ class DeepInfra(OpenAICompatibleProvider):
         "Sao10K/L3-8B-Lunaris-v1-Turbo",
         "Sao10K/L3.1-70B-Euryale-v2.2",
         "Sao10K/L3.3-70B-Euryale-v2.3",
-        "anthropic/claude-3-7-sonnet-latest",
         "deepseek-ai/DeepSeek-R1",
         "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
         "deepseek-ai/DeepSeek-R1-Turbo",
@@ -269,6 +267,7 @@ class DeepInfra(OpenAICompatibleProvider):
         "openai/gpt-oss-20b",
         "allenai/olmOCR-7B-0725-FP8",
     ]
+
     def __init__(self, browser: str = "chrome", api_key: str = None):
         self.timeout = None
         self.base_url = "https://api.deepinfra.com/v1/openai/chat/completions"
@@ -313,4 +312,4 @@ if __name__ == "__main__":
         max_tokens=10000,
         stream=False
     )
-    print(response)
+    print(response.choices[0].message.content)

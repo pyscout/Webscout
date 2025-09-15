@@ -267,11 +267,11 @@ class TogetherAI(OpenAICompatibleProvider):
         "zai-org/GLM-4.5-Air-FP8"
     ]
 
-    def __init__(self, browser: str = "chrome"):
+    def __init__(self, browser: str = "chrome", proxies: Optional[Dict[str, str]] = None):
+        super().__init__(proxies=proxies)
         self.timeout = 60
         self.api_endpoint = "https://api.together.xyz/v1/chat/completions"
         self.activation_endpoint = "https://www.codegeneration.ai/activate-v2"
-        self.session = requests.Session()
         self.headers = LitAgent().generate_fingerprint(browser=browser)
         self.session.headers.update(self.headers)
         self.chat = Chat(self)

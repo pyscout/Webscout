@@ -21,6 +21,7 @@ class YEPCHAT(Provider):
         AVAILABLE_MODELS (list): List of available models for the provider.
     """
 
+    required_auth = False
     AVAILABLE_MODELS = ["DeepSeek-R1-Distill-Qwen-32B", "Mixtral-8x7B-Instruct-v0.1"]
 
     def __init__(

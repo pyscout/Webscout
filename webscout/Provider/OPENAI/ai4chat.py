@@ -5,8 +5,8 @@ from curl_cffi.requests import Session, RequestsError
 from typing import List, Dict, Optional, Union, Generator, Any
 
 # Import base classes and utility structures
-from .base import OpenAICompatibleProvider, BaseChat, BaseCompletions
-from .utils import (
+from webscout.Provider.OPENAI.base import OpenAICompatibleProvider, BaseChat, BaseCompletions
+from webscout.Provider.OPENAI.utils import (
     ChatCompletionChunk, ChatCompletion, Choice, ChoiceDelta,
     ChatCompletionMessage, CompletionUsage, count_tokens
 )
@@ -35,7 +35,7 @@ class Completions(BaseCompletions):
         Mimics openai.chat.completions.create
         """
         # Use the format_prompt utility to format the conversation
-        from .utils import format_prompt
+        from webscout.Provider.OPENAI.utils import format_prompt
 
         # Format the messages into a single string
         conversation_prompt = format_prompt(messages, add_special_tokens=True, include_system=True)
@@ -250,7 +250,8 @@ class AI4Chat(OpenAICompatibleProvider):
         self,
         system_prompt: str = "You are a helpful and informative AI assistant.",
         country: str = "Asia",
-        user_id: str = "usersmjb2oaz7y"
+        user_id: str = "usersmjb2oaz7y",
+        proxies: Optional[Dict[str, str]] = None
     ):
         """
         Initialize the AI4Chat client.
@@ -259,7 +260,9 @@ class AI4Chat(OpenAICompatibleProvider):
             system_prompt: System prompt to guide the AI's behavior
             country: Country parameter for API
             user_id: User ID for API
+            proxies: Proxy configuration
         """
+        super().__init__(proxies=proxies)
         self.timeout = 30
         self.system_prompt = system_prompt
         self.country = country
@@ -267,11 +270,6 @@ class AI4Chat(OpenAICompatibleProvider):
 
         # API endpoint
         self.api_endpoint = "https://yw85opafq6.execute-api.us-east-1.amazonaws.com/default/boss_mode_15aug"
-
-        # Initialize session
-        self.session = Session()
-        self.session.proxies = {}
-        # self.session.timeout = self.timeout # Timeout is per-request for curl_cffi
 
         # Set headers
         self.headers = {
@@ -301,3 +299,15 @@ class AI4Chat(OpenAICompatibleProvider):
             def list(inner_self):
                 return type(self).AVAILABLE_MODELS
         return _ModelList()
+    
+if __name__ == "__main__":
+    # Example usage
+    client = AI4Chat()
+    response = client.chat.completions.create(
+        model="default",
+        messages=[
+            {"role": "system", "content": client.system_prompt},
+            {"role": "user", "content": "Hello, how are you?"}
+        ]
+    )
+    print(response.choices[0].message.content)

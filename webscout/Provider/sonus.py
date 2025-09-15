@@ -12,7 +12,7 @@ class SonusAI(Provider):
     """
     A class to interact with the Sonus AI chat API.
     """
-
+    required_auth = False
     AVAILABLE_MODELS = [
         "pro",
         "air",

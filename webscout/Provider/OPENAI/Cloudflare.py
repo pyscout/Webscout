@@ -9,8 +9,8 @@ from curl_cffi.requests import Session
 from uuid import uuid4
 
 # Import base classes and utility structures
-from .base import OpenAICompatibleProvider, BaseChat, BaseCompletions
-from .utils import (
+from webscout.Provider.OPENAI.base import OpenAICompatibleProvider, BaseChat, BaseCompletions
+from webscout.Provider.OPENAI.utils import (
     ChatCompletionChunk, ChatCompletion, Choice, ChoiceDelta,
     ChatCompletionMessage, CompletionUsage, count_tokens
 )
@@ -337,19 +337,18 @@ class Cloudflare(OpenAICompatibleProvider):
     def __init__(
         self,
         api_key: Optional[str] = None,  # Not used but included for compatibility
+        proxies: Optional[dict] = None
     ):
         """
         Initialize the Cloudflare client.
         
         Args:
             api_key: Not used but included for compatibility with OpenAI interface
+            proxies: Optional proxy configuration dictionary
         """
+        super().__init__(proxies=proxies)
         self.timeout = 30
         self.chat_endpoint = "https://playground.ai.cloudflare.com/api/inference"
-        
-        # Initialize session
-        self.session = Session()
-        self.session.proxies = {}
         
         # Set headers
         self.headers = {

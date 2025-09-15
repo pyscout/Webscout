@@ -13,7 +13,7 @@ class StandardInputAI(Provider):
     """
     A class to interact with the Standard Input chat API.
     """
-
+    required_auth = False
     AVAILABLE_MODELS = {
         "standard-quick": "quick",
         "standard-reasoning": "quick",  # Same model but with reasoning enabled

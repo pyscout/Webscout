@@ -15,7 +15,7 @@ class Flowith(Provider):
     """
     A provider class for interacting with the Flowith API.
     """
-    # Updated list of supported models
+    required_auth = False
     AVAILABLE_MODELS = [
         "gpt-5-nano", "gpt-5-mini", "glm-4.5", "gpt-oss-120b", "gpt-oss-20b", "kimi-k2",
         "gpt-4.1", "gpt-4.1-mini", "deepseek-chat", "deepseek-reasoner",

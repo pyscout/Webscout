@@ -17,9 +17,8 @@ class PerplexityLabs(Provider):
     """
     A client for interacting with the Perplexity AI Labs API.
     """
-    
+    required_auth = False
     AVAILABLE_MODELS = [
-        "r1-1776", 
         "sonar-pro", 
         "sonar", 
         "sonar-reasoning-pro", 

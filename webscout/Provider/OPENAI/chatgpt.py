@@ -558,11 +558,16 @@ class ChatGPT(OpenAICompatibleProvider):
     """
 
     def __init__(
-        self
+        self,
+        proxies: Optional[Dict[str, str]] = None
     ):
         """
         Initialize the ChatGPT client.
+        
+        Args:
+            proxies: Optional proxy configuration dict, e.g. {"http": "http://proxy:8080", "https": "https://proxy:8080"}
         """
+        super().__init__(proxies=proxies)
         # Initialize chat interface
         self.chat = Chat(self)
 

@@ -1,5 +1,5 @@
 from typing import Any, Dict, Optional, Generator, Union
-from webscout.AIutel import Optimizers, Conversation, AwesomePrompts, sanitize_stream # Import sanitize_stream
+from webscout.AIutel import Optimizers, Conversation, AwesomePrompts # Import sanitize_stream
 from webscout.AIbase import Provider
 from webscout import exceptions
 from webscout.litagent import LitAgent
@@ -12,9 +12,10 @@ class Netwrck(Provider):
     A class to interact with the Netwrck.com API. Supports streaming.
     """
     greeting = """Hello! I'm a helpful assistant. How can I help you today?"""
-
+    required_auth = False
     AVAILABLE_MODELS = [
         "thedrummer/valkyrie-49b-v1",
+        "thedrummer/skyfall-36b-v2",
         "sao10k/l3-euryale-70b",
         "deepseek/deepseek-chat",
         "deepseek/deepseek-r1",

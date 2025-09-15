@@ -15,6 +15,7 @@ class SearchChatAI(Provider):
     """
     A class to interact with the SearchChatAI API.
     """
+    required_auth = False
     AVAILABLE_MODELS = ["gpt-4o-mini-2024-07-18"]
     def __init__(
         self,

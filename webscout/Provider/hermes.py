@@ -2,20 +2,18 @@ from curl_cffi.requests import Session
 from curl_cffi import CurlError
 import json
 from typing import Union, Any, Dict, Generator, Optional
-
 from webscout.AIutel import Optimizers
 from webscout.AIutel import Conversation, sanitize_stream # Import sanitize_stream
 from webscout.AIutel import AwesomePrompts
 from webscout.AIbase import Provider
 from webscout import exceptions
-from webscout.litagent import LitAgent
 class NousHermes(Provider):
     """
     A class to interact with the Hermes API.
     """
 
     AVAILABLE_MODELS = ["Hermes-3-Llama-3.1-70B", "Hermes-3-Llama-3.1-8B"]
-
+    required_auth = False
     def __init__(
         self,
         cookies_path: str,

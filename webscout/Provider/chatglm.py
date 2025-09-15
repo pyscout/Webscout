@@ -14,7 +14,7 @@ class ChatGLM(Provider):
     """
     A class to interact with the Z.AI Chat API (GLM-4.5).
     """
-
+    required_auth = False
     url = "https://chat.z.ai"
     # Model nickname mapping system
     MODEL_MAPPING = {

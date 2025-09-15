@@ -11,51 +11,13 @@ from webscout.litagent import LitAgent
 
 # Model configurations
 MODEL_CONFIGS = {
-    "exaanswer": {
-        "endpoint": "https://ayle.chat/api/exaanswer",
-        "models": ["exaanswer"],
-    },
     "gemini": {
         "endpoint": "https://ayle.chat/api/gemini",
         "models": [
             "gemini-2.0-flash",
-            "gemini-2.0-flash-exp-image-generation",
-            "gemini-2.0-flash-thinking-exp-01-21",
-            "gemini-2.5-flash-lite-preview-06-17",
-            "gemini-2.0-pro-exp-02-05",
             "gemini-2.5-flash",
 
         
-        ],
-    },
-    "openrouter": {
-        "endpoint": "https://ayle.chat/api/openrouter",
-        "models": [
-            "mistralai/mistral-small-3.1-24b-instruct:free",
-            "deepseek/deepseek-r1:free",
-            "deepseek/deepseek-chat-v3-0324:free",
-            "google/gemma-3-27b-it:free",
-            "meta-llama/llama-4-maverick:free",           
-        ],
-    },
-    "groq": {
-        "endpoint": "https://ayle.chat/api/groq",
-        "models": [
-            "deepseek-r1-distill-llama-70b",
-            "deepseek-r1-distill-qwen-32b",
-            "gemma2-9b-it",
-            "llama-3.1-8b-instant",
-            "llama-3.2-1b-preview",
-            "llama-3.2-3b-preview",
-            "llama-3.2-90b-vision-preview",
-            "llama-3.3-70b-specdec",
-            "llama-3.3-70b-versatile",
-            "llama3-70b-8192",
-            "llama3-8b-8192",
-            "qwen-2.5-32b",
-            "qwen-2.5-coder-32b",
-            "qwen-qwq-32b",
-            "meta-llama/llama-4-scout-17b-16e-instruct"
         ],
     },
     "cerebras": {
@@ -67,57 +29,16 @@ MODEL_CONFIGS = {
             "qwen-3-32b"
         ],
     },
-    "xai": {
-        "endpoint": "https://ayle.chat/api/xai",
-        "models": [
-            "grok-3-mini-beta"
-        ],
-    },
 }
 
 class ExaChat(Provider):
     """
     A class to interact with multiple AI APIs through the Exa Chat interface.
     """
+    required_auth = False
     AVAILABLE_MODELS = [
-        # ExaAnswer Models
-        "exaanswer",
-
-        # XAI Models
-        "grok-3-mini-beta",
-        
-        # Gemini Models
         "gemini-2.0-flash",
-        "gemini-2.0-flash-exp-image-generation",
-        "gemini-2.0-flash-thinking-exp-01-21",
-        "gemini-2.0-pro-exp-02-05",
         "gemini-2.5-flash",
-        "gemini-2.5-flash-lite-preview-06-17",
-        
-        # OpenRouter Models
-        "mistralai/mistral-small-3.1-24b-instruct:free",
-        "deepseek/deepseek-r1:free",
-        "deepseek/deepseek-chat-v3-0324:free",
-        "google/gemma-3-27b-it:free",
-        "meta-llama/llama-4-maverick:free",
-        
-        # Groq Models
-        "deepseek-r1-distill-llama-70b",
-        "deepseek-r1-distill-qwen-32b",
-        "gemma2-9b-it",
-        "llama-3.1-8b-instant",
-        "llama-3.2-1b-preview",
-        "llama-3.2-3b-preview",
-        "llama-3.2-90b-vision-preview",
-        "llama-3.3-70b-specdec",
-        "llama-3.3-70b-versatile",
-        "llama3-70b-8192",
-        "llama3-8b-8192",
-        "qwen-2.5-32b",
-        "qwen-2.5-coder-32b",
-        "qwen-qwq-32b",
-        "meta-llama/llama-4-scout-17b-16e-instruct",
-
         
         # Cerebras Models
         "llama3.1-8b",

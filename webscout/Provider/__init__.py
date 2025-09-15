@@ -1,89 +1,18 @@
-# webscout/providers/__init__.py
-from .PI import *
-from .Cohere import Cohere
-from .Reka import REKA
-from .Groq import GROQ
-from .Groq import AsyncGROQ
-from .Openai import OPENAI
-from .Openai import AsyncOPENAI
-from .Koboldai import KOBOLDAI
-from .Koboldai import AsyncKOBOLDAI
-from .Blackboxai import BLACKBOXAI
-from .ai4chat import *
-from .Gemini import GEMINI
-from .Deepinfra import DeepInfra
-from .typefully import *
-from .cleeai import *
-from .OLLAMA import OLLAMA
-from .Andi import AndiSearch
-from .Llama3 import *
-from .koala import *
-from .meta import *
-from .julius import *
-from .yep import *
-from .Cloudflare import *
-from .turboseek import *
-from .TeachAnything import *
-from .x0gpt import *
-from .cerebras import *
-from .geminiapi import *
-from .elmo import *
-from .Netwrck import Netwrck
-from .llmchat import *
-from .llmchatco import LLMChatCo  # Add new LLMChat.co provider
-from .talkai import *
-from .llama3mitril import *
-from .Marcus import *
-from .multichat import *
-from .Jadve import *
-from .chatglm import *
-from .hermes import *
-from .TextPollinationsAI import *
-from .QwenLM import *
-from .granite import *
-from .WiseCat import *
-from .freeaichat import FreeAIChat
-from .akashgpt import *
-from .Perplexitylabs import *
-from .AllenAI import *
-from .HeckAI import *
-from .TwoAI import *
-from .Venice import *
-from .GithubChat import *
-from .copilot import *
-from .sonus import *
-from .LambdaChat import *
-from .ChatGPTClone import *
-from .VercelAI import *
-from .ExaChat import *
-from .asksteve import *
-from .Aitopia import *
-from .searchchat import *
-from .ExaAI import ExaAI
-from .OpenGPT import OpenGPT
-from .scira_chat import *
-from .StandardInput import *
-from .toolbaz import Toolbaz
-from .scnet import SCNet
-from .MCPCore import MCPCore
-from .TypliAI import TypliAI
-from .ChatSandbox import ChatSandbox
-from .GizAI import GizAI
-from .WrDoChat import WrDoChat
-from .Nemotron import NEMOTRON
-from .FreeGemini import FreeGemini
-from .Flowith import Flowith
-from .lmarena import lmarena
-from .oivscode import oivscode
-from .deepseek_assistant import DeepSeekAssistant
-from .GeminiProxy import GeminiProxy
-from .TogetherAI import TogetherAI
-from .MiniMax import MiniMax
-from .Qodo import *
-from .monochat import MonoChat
-from .Kimi import Kimi
-from .GptOss import GptOss
-#######################
-## Removed Providers ##
-#######################
-# from .UNFINISHED.XenAI import XenAI
+# This file marks the directory as a Python package.
+
+import os
+import importlib
+from pathlib import Path
+
+# Get current directory
+current_dir = Path(__file__).parent
+
+# Auto-import all .py files (except __init__.py)
+for file_path in current_dir.glob("*.py"):
+    if file_path.name != "__init__.py":
+        module_name = file_path.stem
+        try:
+            module = importlib.import_module(f".{module_name}", package=__name__)
+            globals().update(vars(module))
+        except ImportError:
+            pass  # Skip files that can't be imported

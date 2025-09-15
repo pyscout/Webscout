@@ -1,5 +1,4 @@
 import requests
-import json
 from uuid import uuid4
 
 from webscout.AIutel import Optimizers
@@ -12,7 +11,7 @@ class Cleeai(Provider):
     """
     A class to interact with the Cleeai.com API.
     """
-
+    required_auth = False
     def __init__(
         self,
         is_conversation: bool = True,

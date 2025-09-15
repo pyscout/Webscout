@@ -27,17 +27,14 @@ class AkashGPT(Provider):
         >>> print(response)
         'The weather today depends on your location. I don't have access to real-time weather data.'
     """
-
+    required_auth = True
     AVAILABLE_MODELS = [
-        "Qwen3-235B-A22B-FP8",
-        "meta-llama-Llama-4-Maverick-17B-128E-Instruct-FP8",
-        "nvidia-Llama-3-3-Nemotron-Super-49B-v1",
-        "Qwen-QwQ-32B",
-        "Meta-Llama-3-3-70B-Instruct",
-        "DeepSeek-R1",
-        "AkashGen"
-
-
+        "Qwen3-Next-80B-A3B-Instruct",
+        "DeepSeek-V3.1",
+        "openai-gpt-oss-120b",
+        "Qwen3-235B-A22B-Instruct-2507-FP8"
+        "meta-llama-Llama-4-Maverick-17B-128E-Instruct-FP8"
+        "Meta-Llama-3-3-70B-Instruct"
     ]
 
     def __init__(

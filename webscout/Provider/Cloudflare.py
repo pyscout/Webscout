@@ -16,7 +16,7 @@ class Cloudflare(Provider):
     """
     Cloudflare provider to interact with Cloudflare's text generation API.
     """
-
+    required_auth = False
     # Updated AVAILABLE_MODELS from given JSON data
     AVAILABLE_MODELS = [
         "@hf/thebloke/deepseek-coder-6.7b-base-awq",

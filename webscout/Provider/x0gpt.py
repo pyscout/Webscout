@@ -27,6 +27,7 @@ class X0GPT(Provider):
         >>> print(response)
         'The weather today is sunny with a high of 75°F.'
     """
+    required_auth = False
     AVAILABLE_MODELS = ["UNKNOWN"]
 
     def __init__(

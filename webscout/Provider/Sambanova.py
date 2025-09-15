@@ -13,19 +13,18 @@ class Sambanova(Provider):
     """
     A class to interact with the Sambanova API.
     """
-
+    required_auth = True
     AVAILABLE_MODELS = [
-        "Meta-Llama-3.1-8B-Instruct",
-        "Meta-Llama-3.1-70B-Instruct",
-        "Meta-Llama-3.1-405B-Instruct",
+        "DeepSeek-R1-0528",
         "DeepSeek-R1-Distill-Llama-70B",
-        "Llama-3.1-Tulu-3-405B",
-        "Meta-Llama-3.2-1B-Instruct",
-        "Meta-Llama-3.2-3B-Instruct",
+        "DeepSeek-V3.1",
+        "gpt-oss-120b",
+        "Qwen3-32B",
+        "DeepSeek-V3-0324",
+        "Meta-Llama-3.1-8B-Instruct",
         "Meta-Llama-3.3-70B-Instruct",
-        "Qwen2.5-72B-Instruct",
-        "Qwen2.5-Coder-32B-Instruct",
-        "QwQ-32B-Preview"
+        "Llama-3.3-Swallow-70B-Instruct-v0.4",
+        "Llama-4-Maverick-17B-128E-Instruct"
     ]
 
     def __init__(

@@ -1,20 +1,20 @@
 from curl_cffi.requests import Session
 from curl_cffi import CurlError
-import json
 import re
 from typing import Union, Any, Dict, Optional, Generator
+import secrets
+
 
 from webscout.AIutel import Optimizers, Conversation, AwesomePrompts, sanitize_stream # Import sanitize_stream
 from webscout.AIbase import Provider
 from webscout import exceptions
-from webscout.litagent import LitAgent
 
 class JadveOpenAI(Provider):
     """
     A class to interact with the OpenAI API through jadve.com using the streaming endpoint.
     """
-
-    AVAILABLE_MODELS = ["gpt-4o-mini"]
+    required_auth = False
+    AVAILABLE_MODELS = ["gpt-5-mini", "claude-3-5-haiku-20241022"]
 
     def __init__(
         self,
@@ -27,7 +27,7 @@ class JadveOpenAI(Provider):
         proxies: dict = {},
         history_offset: int = 10250,
         act: str = None,
-        model: str = "gpt-4o-mini",
+        model: str = "gpt-5-mini",
         system_prompt: str = "You are a helpful AI assistant." # Note: system_prompt is not used by this API
     ):
         """
@@ -53,7 +53,7 @@ class JadveOpenAI(Provider):
         self.session = Session()
         self.is_conversation = is_conversation
         self.max_tokens_to_sample = max_tokens
-        self.api_endpoint = "https://openai.jadve.com/stream"
+        self.api_endpoint = "https://ai-api.jadve.com/api/chat"
         self.stream_chunk_size = 64
         self.timeout = timeout
         self.last_response = {}
@@ -67,12 +67,16 @@ class JadveOpenAI(Provider):
             "content-type": "application/json",
             "dnt": "1",
             "origin": "https://jadve.com",
-            "priority": "u=1, i", # Keep priority header if needed
+            "priority": "u=1, i",
             "referer": "https://jadve.com/",
             "sec-fetch-dest": "empty",
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-site",
-            "x-authorization": "Bearer" # Keep custom headers
+            "sec-ch-ua": '"Chromium";v="140", "Not=A?Brand";v="24", "Microsoft Edge";v="140"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
+            "sec-gpc": "1",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0"
         }
         
         # Update curl_cffi session headers and proxies
@@ -136,15 +140,14 @@ class JadveOpenAI(Provider):
                 raise Exception(f"Optimizer is not one of {list(self.__available_optimizers)}")
 
         payload = {
+            "id": secrets.token_hex(8),
             "messages": [
-                {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": [{"type": "text", "text": conversation_prompt}]}
             ],
             "model": self.model,
             "botId": "",
             "chatId": "",
-            "stream": True, # API endpoint suggests streaming is default/required
-            "temperature": 0.7,
+            "stream": True,
             "returnTokensUsage": True,
             "useTools": False
         }
@@ -160,7 +163,7 @@ class JadveOpenAI(Provider):
                     stream=True, 
                     timeout=self.timeout,
                     # proxies are set on the session
-                    impersonate="chrome110" # Use a common impersonation profile
+                    impersonate="chrome120" # Use a common impersonation profile
                 )
                 response.raise_for_status() # Check for HTTP errors
 
@@ -269,29 +272,11 @@ class JadveOpenAI(Provider):
         return response.get("text", "")
 
 if __name__ == "__main__":
-    # # Ensure curl_cffi is installed
-    # print("-" * 80)
-    # print(f"{'Model':<50} {'Status':<10} {'Response'}")
-    # print("-" * 80)
-
-    # for model in JadveOpenAI.AVAILABLE_MODELS:
-    #     try:
-    #         test_ai = JadveOpenAI(model=model, timeout=60)
-    #         response = test_ai.chat("Say 'Hello' in one word")
-    #         response_text = response
-            
-    #         if response_text and len(response_text.strip()) > 0:
-    #             status = "✓"
-    #             # Truncate response if too long
-    #             display_text = response_text.strip()[:50] + "..." if len(response_text.strip()) > 50 else response_text.strip()
-    #         else:
-    #             status = "✗"
-    #             display_text = "Empty or invalid response"
-    #         print(f"{model:<50} {status:<10} {display_text}")
-    #     except Exception as e:
-    #         print(f"{model:<50} {'✗':<10} {str(e)}")
-    from rich import print
-    ai = JadveOpenAI()
-    response = ai.chat("tell me about humans", stream=True, raw=False)
-    for chunk in response:
-        print(chunk, end='', flush=True)
+    for model in JadveOpenAI.AVAILABLE_MODELS:
+        ai = JadveOpenAI(model=model)    
+        response = ai.chat("hi")
+        print(f"Model: {model}")
+        print(response)
+        print("-" * 50)
+    # for chunk in response:
+    #     print(chunk, end="", flush=True)

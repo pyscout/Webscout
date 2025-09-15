@@ -336,6 +336,9 @@ class SciraChat(OpenAICompatibleProvider):
         "o3": "scira-o3",
         "qwen/qwen3-32b": "scira-qwen-32b",
         "qwen3-30b-a3b": "scira-qwen-30b",
+        "qwen3-4b": "scira-qwen-4b",
+        "qwen3-32b": "scira-qwen-32b",
+        "qwen3-4b-thinking": "scira-qwen-4b-thinking",
         "deepseek-v3-0324": "scira-deepseek-v3",
         "claude-3-5-haiku-20241022": "scira-haiku",
         "mistral-small-latest": "scira-mistral",
@@ -346,6 +349,7 @@ class SciraChat(OpenAICompatibleProvider):
         "claude-sonnet-4-20250514-thinking": "scira-anthropic-thinking",
         "claude-4-opus-20250514": "scira-opus",
         "claude-4-opus-20250514-pro": "scira-opus-pro",
+        "llama-4-maverick": "scira-llama-4",
         "meta-llama/llama-4-maverick-17b-128e-instruct": "scira-llama-4",
         "kimi-k2-instruct": "scira-kimi-k2",
         "scira-kimi-k2": "kimi-k2-instruct",
@@ -360,6 +364,8 @@ class SciraChat(OpenAICompatibleProvider):
     SCIRA_TO_MODEL["scira-nano"] = "gpt-4.1-nano"
     SCIRA_TO_MODEL["scira-qwen-32b"] = "qwen/qwen3-32b"
     SCIRA_TO_MODEL["scira-qwen-30b"] = "qwen3-30b-a3b"
+    SCIRA_TO_MODEL["scira-qwen-4b"] = "qwen3-4b"
+    SCIRA_TO_MODEL["scira-qwen-4b-thinking"] = "qwen3-4b-thinking"
     SCIRA_TO_MODEL["scira-deepseek-v3"] = "deepseek-v3-0324"
     SCIRA_TO_MODEL["scira-grok-4"] = "grok-4"
     SCIRA_TO_MODEL["scira-kimi-k2"] = "kimi-k2-instruct"

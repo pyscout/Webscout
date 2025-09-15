@@ -15,7 +15,7 @@ class Elmo(Provider):
     """
     A class to interact with the Elmo.chat API.
     """
-
+    required_auth = False
     def __init__(
         self,
         is_conversation: bool = True,

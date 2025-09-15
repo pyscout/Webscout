@@ -13,7 +13,7 @@ class IBMGranite(Provider):
     A class to interact with the IBM Granite API (accessed via d18n68ssusgr7r.cloudfront.net)
     using Lit agent for the user agent.
     """
-
+    required_auth = False
     AVAILABLE_MODELS = ["granite-3-8b-instruct", "granite-3-2-8b-instruct", "granite-3-3-8b-instruct"]
 
     def __init__(

@@ -35,7 +35,7 @@ class HeckAI(Provider):
         previous_answer (str): Last answer received from the API.
         conversation (Conversation): Conversation history manager.
     """
-
+    required_auth = False
     AVAILABLE_MODELS = [
         "google/gemini-2.5-flash-preview",
         "deepseek/deepseek-chat",

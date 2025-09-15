@@ -21,6 +21,7 @@ class PiAI(Provider):
         AVAILABLE_VOICES (Dict[str, int]): Available voice options for audio responses
         AVAILABLE_MODELS (List[str]): Available model options for the API
     """
+    required_auth = False
     AVAILABLE_MODELS = ["inflection_3_pi"]
     AVAILABLE_VOICES: Dict[str, int] = {
         "voice1": 1,

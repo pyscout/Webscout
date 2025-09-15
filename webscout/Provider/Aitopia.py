@@ -1,6 +1,5 @@
 from curl_cffi import CurlError
 from curl_cffi.requests import Session
-import json
 import uuid
 import time
 import hashlib
@@ -9,7 +8,7 @@ from typing import Any, Dict, Optional, Generator, Union
 from webscout.AIutel import Optimizers
 from webscout.AIutel import Conversation, sanitize_stream # Import sanitize_stream
 from webscout.AIutel import AwesomePrompts
-from webscout.AIbase import Provider, AsyncProvider
+from webscout.AIbase import Provider
 from webscout import exceptions
 from webscout.litagent import LitAgent
 
@@ -17,7 +16,7 @@ class Aitopia(Provider):
     """
     A class to interact with the Aitopia API with LitAgent user-agent.
     """
-
+    required_auth = True
     AVAILABLE_MODELS = [
         "Claude 3 Haiku",
         "GPT-4o Mini",

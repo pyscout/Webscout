@@ -351,12 +351,8 @@ class FalconH1(OpenAICompatibleProvider):
             timeout (int): Default request timeout in seconds (default: 120).
             proxies (Optional[dict]): Optional proxy settings for HTTP requests.
         """
+        super().__init__(proxies=proxies)
         self.timeout = timeout
-        self.session = requests.Session()
-        if proxies:
-            self.session.proxies = proxies
-        else:
-            self.session.proxies = {}
         self.headers = {
             'User-Agent': LitAgent().random(),
             'Accept': '*/*',
@@ -454,4 +450,3 @@ if __name__ == "__main__":
         print("\n--- End of Stream ---")
     except Exception as e:
         print(f"Error in streaming example: {e}")
-

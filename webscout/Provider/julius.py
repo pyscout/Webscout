@@ -12,6 +12,7 @@ from typing import Union, Any, AsyncGenerator, Dict
 
 
 class Julius(Provider):
+    required_auth = True
     AVAILABLE_MODELS = [
         "Llama 3",
         "GPT-4o",

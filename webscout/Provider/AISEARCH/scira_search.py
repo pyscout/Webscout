@@ -56,6 +56,8 @@ class Scira(AISearch):
         "scira-o3": "o3",
         "scira-qwen-32b": "qwen/qwen3-32b",
         "scira-qwen-30b": "qwen3-30b-a3b",
+        "scira-qwen-4b": "qwen3-4b",
+        "scira-qwen-4b-thinking": "qwen3-4b-thinking",
         "scira-deepseek-v3": "deepseek-v3-0324",
         "scira-haiku": "claude-3-5-haiku-20241022",
         "scira-mistral": "mistral-small-latest",
@@ -66,7 +68,7 @@ class Scira(AISearch):
         "scira-anthropic-thinking": "claude-sonnet-4-20250514",
         "scira-opus": "claude-4-opus-20250514",
         "scira-opus-pro": "claude-4-opus-20250514",
-        "scira-llama-4": "meta-llama/llama-4-maverick-17b-128e-instruct",
+        "scira-llama-4": "llama-4-maverick",
         "scira-kimi-k2": "kimi-k2-instruct",
         "kimi-k2-instruct": "scira-kimi-k2",
     }

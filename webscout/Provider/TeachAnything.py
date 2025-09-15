@@ -15,6 +15,7 @@ class TeachAnything(Provider):
     """
     # Add AVAILABLE_MODELS if applicable, otherwise remove model param
     # AVAILABLE_MODELS = ["default"] # Example
+    required_auth = False
 
     def __init__(
         self,

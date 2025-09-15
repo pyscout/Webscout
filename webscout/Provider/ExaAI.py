@@ -26,7 +26,7 @@ class ExaAI(Provider):
         'The weather today depends on your location...'
     """
     AVAILABLE_MODELS = ["O3-Mini"]
-
+    required_auth = False
     def __init__(
         self,
         is_conversation: bool = True,

@@ -289,11 +289,9 @@ class PiAI(OpenAICompatibleProvider):
             proxies: Proxy configuration
             **kwargs: Additional arguments
         """
+        super().__init__(proxies=proxies)
         self.timeout = timeout
         self.conversation_id = None
-        
-        # Initialize curl_cffi Session
-        self.session = Session()
         
         # Setup URLs
         self.primary_url = 'https://pi.ai/api/chat'
@@ -319,6 +317,9 @@ class PiAI(OpenAICompatibleProvider):
         self.cookies = {
             '__cf_bm': uuid4().hex
         }
+        
+        # Replace the base session with curl_cffi Session
+        self.session = Session()
         
         # Configure session
         self.session.headers.update(self.headers)

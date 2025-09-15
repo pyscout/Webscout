@@ -2,8 +2,8 @@ from typing import List, Dict, Optional, Union, Generator, Any
 import time
 import json
 from webscout.litagent import LitAgent
-from .base import OpenAICompatibleProvider, BaseChat, BaseCompletions
-from .utils import (
+from webscout.Provider.OPENAI.base import OpenAICompatibleProvider, BaseChat, BaseCompletions
+from webscout.Provider.OPENAI.utils import (
     ChatCompletion,
     ChatCompletionChunk,
     Choice,
@@ -13,7 +13,10 @@ from .utils import (
     format_prompt,
     count_tokens
 )
-import requests
+from curl_cffi.requests import Session
+from curl_cffi.const import CurlHttpVersion
+from webscout.AIutel import sanitize_stream
+from webscout import exceptions
 
 # ANSI escape codes for formatting
 BOLD = "\033[1m"
@@ -23,6 +26,19 @@ RESET = "\033[0m"
 class Completions(BaseCompletions):
     def __init__(self, client: 'ChatSandbox'):
         self._client = client
+
+    @staticmethod
+    def _chatsandbox_extractor(chunk: Union[str, Dict[str, Any]]) -> Optional[str]:
+        """Extracts content from the chatsandbox stream format."""
+        if isinstance(chunk, str):
+            try:
+                data = json.loads(chunk)
+                if isinstance(data, dict) and "reasoning_content" in data:
+                    return data["reasoning_content"]
+                return chunk
+            except json.JSONDecodeError:
+                return chunk
+        return None
 
     def create(
         self,
@@ -43,7 +59,7 @@ class Completions(BaseCompletions):
         # Use model name conversion for compatibility
         model = self._client.convert_model_name(model)
         # Compose the conversation prompt using format_prompt
-        question = format_prompt(messages, add_special_tokens=True)
+        question = format_prompt(messages, add_special_tokens=False, do_continue=True)
         payload = {
             "messages": [question],
             "character": model
@@ -70,7 +86,7 @@ class Completions(BaseCompletions):
             'dnt': '1',
             'sec-gpc': '1',
         }
-        session = requests.Session()
+        session = Session()
         session.headers.update(headers)
         session.proxies = proxies if proxies is not None else {}
         
@@ -80,29 +96,37 @@ class Completions(BaseCompletions):
                     url,
                     json=payload,
                     stream=True,
-                    timeout=timeout if timeout is not None else 30
+                    timeout=timeout if timeout is not None else 30,
+                    impersonate="chrome120",
+                    http_version=CurlHttpVersion.V1_1
                 )
-                response.raise_for_status()
-                streaming_text = ""
-                for chunk in response.iter_content(chunk_size=None):
-                    if not chunk:
-                        continue
-                    text = chunk.decode('utf-8', errors='replace')
-                    try:
-                        data = json.loads(text)
-                        content = data.get("reasoning_content", text)
-                    except Exception:
-                        content = text
-                    streaming_text += content
-                    delta = ChoiceDelta(content=content)
-                    choice = Choice(index=0, delta=delta, finish_reason=None)
-                    chunk_obj = ChatCompletionChunk(
-                        id=request_id,
-                        choices=[choice],
-                        created=created_time,
-                        model=model,
+                if not response.ok:
+                    raise exceptions.FailedToGenerateResponseError(
+                        f"Failed to generate response - ({response.status_code}, {response.reason}) - {response.text}"
                     )
-                    yield chunk_obj
+                
+                streaming_text = ""
+                # Use sanitize_stream with the custom extractor
+                processed_stream = sanitize_stream(
+                    data=response.iter_content(chunk_size=None),  # Pass byte iterator
+                    intro_value=None,  # No simple prefix to remove here
+                    to_json=False,     # Content is not JSON
+                    content_extractor=self._chatsandbox_extractor  # Use the specific extractor
+                )
+
+                for content_chunk in processed_stream:
+                    if content_chunk and isinstance(content_chunk, str):
+                        streaming_text += content_chunk
+                        delta = ChoiceDelta(content=content_chunk)
+                        choice = Choice(index=0, delta=delta, finish_reason=None)
+                        chunk_obj = ChatCompletionChunk(
+                            id=request_id,
+                            choices=[choice],
+                            created=created_time,
+                            model=model,
+                        )
+                        yield chunk_obj
+
                 # Final chunk
                 delta = ChoiceDelta(content=None)
                 choice = Choice(index=0, delta=delta, finish_reason="stop")
@@ -116,39 +140,28 @@ class Completions(BaseCompletions):
             except Exception as e:
                 raise RuntimeError(f"ChatSandbox streaming request failed: {e}")
         def for_non_stream():
-            try:
-                response = session.post(
-                    url,
-                    json=payload,
-                    timeout=timeout if timeout is not None else 30
-                )
-                response.raise_for_status()
-                text = response.text
-                try:
-                    data = json.loads(text)
-                    content = data.get("reasoning_content", text)
-                except Exception:
-                    content = text
-                prompt_tokens = count_tokens(question)
-                completion_tokens = count_tokens(content)
-                total_tokens = prompt_tokens + completion_tokens
-                usage = CompletionUsage(
-                    prompt_tokens=prompt_tokens,
-                    completion_tokens=completion_tokens,
-                    total_tokens=total_tokens
-                )
-                message = ChatCompletionMessage(role="assistant", content=content)
-                choice = Choice(index=0, message=message, finish_reason="stop")
-                completion = ChatCompletion(
-                    id=request_id,
-                    choices=[choice],
-                    created=created_time,
-                    model=model,
-                    usage=usage,
-                )
-                return completion
-            except Exception as e:
-                raise RuntimeError(f"ChatSandbox request failed: {e}")
+            streaming_text = ""
+            for chunk_obj in for_stream():
+                if chunk_obj.choices[0].delta.content:
+                    streaming_text += chunk_obj.choices[0].delta.content
+            prompt_tokens = count_tokens(question)
+            completion_tokens = count_tokens(streaming_text)
+            total_tokens = prompt_tokens + completion_tokens
+            usage = CompletionUsage(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens
+            )
+            message = ChatCompletionMessage(role="assistant", content=streaming_text)
+            choice = Choice(index=0, message=message, finish_reason="stop")
+            completion = ChatCompletion(
+                id=request_id,
+                choices=[choice],
+                created=created_time,
+                model=model,
+                usage=usage,
+            )
+            return completion
         return for_stream() if stream else for_non_stream()
 
 class Chat(BaseChat):
@@ -175,3 +188,15 @@ class ChatSandbox(OpenAICompatibleProvider):
         # Default to openai if no match
         print(f"{RED}{BOLD}Warning: Model '{model}' not found, using default model 'openai'{RESET}")
         return "openai"
+
+if __name__ == "__main__":
+    client = ChatSandbox()
+    response = client.chat.completions.create(
+        model="openai",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "Explain the theory of relativity in simple terms."}
+        ],
+        stream=False
+    )
+    print(response.choices[0].message.content)

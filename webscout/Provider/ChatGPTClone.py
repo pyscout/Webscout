@@ -20,7 +20,7 @@ class ChatGPTClone(Provider):
     ChatGPTClone is a provider class for interacting with the ChatGPT Clone API.
     Supports streaming responses.
     """
-    
+    required_auth = False
     url = "https://chatgpt-clone-ten-nu.vercel.app"
     AVAILABLE_MODELS = ["gpt-4", "gpt-3.5-turbo"]
     SUPPORTED_IMPERSONATION = [

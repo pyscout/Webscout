@@ -1,5 +1,5 @@
-
 import re
+
 
 # Import trio before curl_cffi to prevent eventlet socket monkey-patching conflicts
 # See: https://github.com/python-trio/trio/issues/3015
@@ -28,7 +28,7 @@ class Cerebras(Provider):
     """
     A class to interact with the Cerebras API using a cookie for authentication.
     """
-
+    required_auth = True
     AVAILABLE_MODELS = [
         "qwen-3-coder-480b",
         "qwen-3-235b-a22b-instruct-2507",
@@ -40,6 +40,56 @@ class Cerebras(Provider):
         "llama-4-scout-17b-16e-instruct",
         "llama3.1-8b"
     ]
+
+    @classmethod
+    def get_models(cls, api_key: str = None):
+        """Fetch available models from Cerebras API.
+        
+        Args:
+            api_key (str, optional): Cerebras API key. If not provided, returns default models.
+            
+        Returns:
+            list: List of available model IDs
+        """
+        if not api_key:
+            return cls.AVAILABLE_MODELS
+            
+        try:
+            # Use a temporary curl_cffi session for this class method
+            temp_session = Session()
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+            }
+            
+            response = temp_session.get(
+                "https://api.cerebras.ai/v1/models",
+                headers=headers,
+                impersonate="chrome120"
+            )
+            
+            if response.status_code != 200:
+                return cls.AVAILABLE_MODELS
+                
+            data = response.json()
+            if "data" in data and isinstance(data["data"], list):
+                return [model['id'] for model in data['data']]
+            return cls.AVAILABLE_MODELS
+            
+        except Exception:
+            # Fallback to default models list if fetching fails
+            return cls.AVAILABLE_MODELS
+
+    @classmethod
+    def update_available_models(cls, api_key=None):
+        """Update the available models list from Cerebras API"""
+        try:
+            models = cls.get_models(api_key)
+            if models and len(models) > 0:
+                cls.AVAILABLE_MODELS = models
+        except Exception:
+            # Fallback to default models list if fetching fails
+            pass
 
     def __init__(
         self,
@@ -59,12 +109,6 @@ class Cerebras(Provider):
         temperature: float = 0.7,
         top_p: float = 0.8,
     ):
-        # Validate model choice
-        if model not in self.AVAILABLE_MODELS:
-            raise ValueError(
-                f"Invalid model: {model}. Choose from: {self.AVAILABLE_MODELS}"
-            )
-
         # Initialize basic settings first
         self.timeout = timeout
         self.model = model
@@ -92,6 +136,15 @@ class Cerebras(Provider):
         else:
             raise ValueError("Either api_key must be provided or cookie_path must be specified")
 
+        # Update available models from API
+        self.update_available_models(self.api_key)
+
+        # Validate model choice after updating models
+        if model not in self.AVAILABLE_MODELS:
+            raise ValueError(
+                f"Invalid model: {model}. Choose from: {self.AVAILABLE_MODELS}"
+            )
+
         # Initialize optimizers
         self.__available_optimizers = (
             method
@@ -114,6 +167,56 @@ class Cerebras(Provider):
 
         # Apply proxies to the session
         self.session.proxies = proxies
+
+    @classmethod
+    def get_models(cls, api_key: str = None):
+        """Fetch available models from Cerebras API.
+        
+        Args:
+            api_key (str, optional): Cerebras API key. If not provided, returns default models.
+            
+        Returns:
+            list: List of available model IDs
+        """
+        if not api_key:
+            return cls.AVAILABLE_MODELS
+            
+        try:
+            # Use a temporary curl_cffi session for this class method
+            temp_session = Session()
+            headers = {
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+            }
+            
+            response = temp_session.get(
+                "https://api.cerebras.ai/v1/models",
+                headers=headers,
+                impersonate="chrome120"
+            )
+            
+            if response.status_code != 200:
+                return cls.AVAILABLE_MODELS
+                
+            data = response.json()
+            if "data" in data and isinstance(data["data"], list):
+                return [model['id'] for model in data['data']]
+            return cls.AVAILABLE_MODELS
+            
+        except Exception:
+            # Fallback to default models list if fetching fails
+            return cls.AVAILABLE_MODELS
+
+    @classmethod
+    def update_available_models(cls, api_key=None):
+        """Update the available models list from Cerebras API"""
+        try:
+            models = cls.get_models(api_key)
+            if models and len(models) > 0:
+                cls.AVAILABLE_MODELS = models
+        except Exception:
+            # Fallback to default models list if fetching fails
+            pass
 
     # Rest of the class implementation remains the same...
     @staticmethod

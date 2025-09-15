@@ -9,6 +9,7 @@ from webscout import exceptions
 
 #-----------------------------------------------Cohere--------------------------------------------
 class Cohere(Provider):
+    required_auth = True
     def __init__(
         self,
         api_key: str,

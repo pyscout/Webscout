@@ -2,21 +2,15 @@ from curl_cffi.requests import Session
 from curl_cffi import CurlError
 import json
 import base64
-import time
-import os
-import pickle
-import tempfile
 from typing import Any, Dict, Optional, Generator, Union
 import re  # Import re for parsing SSE
-import urllib.parse
 
 from webscout.AIutel import Optimizers
 from webscout.AIutel import Conversation
-from webscout.AIutel import AwesomePrompts, sanitize_stream # Import sanitize_stream
+from webscout.AIutel import AwesomePrompts, sanitize_stream
 from webscout.AIbase import Provider
 from webscout import exceptions
 from webscout.litagent import LitAgent
-from webscout.Extra.tempmail import get_random_email
 
 
 class TwoAI(Provider):
@@ -26,233 +20,18 @@ class TwoAI(Provider):
     SUTRA's dual-transformer extends the power of both MoE and Dense AI language model architectures,
     delivering cost-efficient multilingual capabilities for over 50+ languages.
 
-    API keys can be generated using the generate_api_key() method, which uses a temporary email
-    to register for the Two AI service and extract the API key from the confirmation email.
-    API keys are cached to avoid regenerating them on every initialization.
+    API keys must be provided directly by the user.
     """
 
+    required_auth = True
     AVAILABLE_MODELS = [
         "sutra-v2",  # Multilingual AI model for instruction execution and conversational intelligence
         "sutra-r0",  # Advanced reasoning model for complex problem-solving and deep contextual understanding
     ]
-    
-    # Class-level cache for API keys
-    _api_key_cache = None
-    _cache_file = os.path.join(tempfile.gettempdir(), "webscout_twoai_cache.pkl")
-
-    @classmethod
-    def _load_cached_api_key(cls) -> Optional[str]:
-        """Load cached API key from file."""
-        try:
-            if os.path.exists(cls._cache_file):
-                with open(cls._cache_file, 'rb') as f:
-                    cache_data = pickle.load(f)
-                    # Check if cache is not too old (24 hours)
-                    if time.time() - cache_data.get('timestamp', 0) < 86400:
-                        return cache_data.get('api_key')
-        except Exception:
-            # If cache is corrupted or unreadable, ignore and regenerate
-            pass
-        return None
-
-    @classmethod
-    def _save_cached_api_key(cls, api_key: str):
-        """Save API key to cache file."""
-        try:
-            cache_data = {
-                'api_key': api_key,
-                'timestamp': time.time()
-            }
-            with open(cls._cache_file, 'wb') as f:
-                pickle.dump(cache_data, f)
-        except Exception:
-            # If caching fails, continue without caching
-            pass
-
-    @classmethod
-    def _validate_api_key(cls, api_key: str) -> bool:
-        """Validate if an API key is still working."""
-        try:
-            session = Session()
-            headers = {
-                'User-Agent': LitAgent().random(),
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {api_key}',
-            }
-            
-            # Test with a simple request
-            test_payload = {
-                "messages": [{"role": "user", "content": "test"}],
-                "model": "sutra-v2",
-                "max_tokens": 1,
-                "stream": False
-            }
-            
-            response = session.post(
-                "https://api.two.ai/v2/chat/completions",
-                headers=headers,
-                json=test_payload,
-                timeout=10,
-                impersonate="chrome120"
-            )
-            
-            # If we get a 200 or 400 (bad request but auth worked), key is valid
-            # If we get 401/403, key is invalid
-            return response.status_code not in [401, 403]
-        except Exception:
-            # If validation fails, assume key is invalid
-            return False
-
-    @classmethod
-    def get_cached_api_key(cls) -> str:
-        """Get a cached API key or generate a new one if needed."""
-        # First check class-level cache
-        if cls._api_key_cache:
-            if cls._validate_api_key(cls._api_key_cache):
-                return cls._api_key_cache
-            else:
-                cls._api_key_cache = None
-
-        # Then check file cache
-        cached_key = cls._load_cached_api_key()
-        if cached_key and cls._validate_api_key(cached_key):
-            cls._api_key_cache = cached_key
-            return cached_key
-
-        # Generate new key if no valid cached key
-        new_key = cls.generate_api_key()
-        cls._api_key_cache = new_key
-        cls._save_cached_api_key(new_key)
-        return new_key
-
-    @staticmethod
-    def generate_api_key() -> str:
-        """
-        Generate a new Two AI API key using a temporary email.
-
-        This method:
-        1. Creates a temporary email using webscout's tempmail module
-        2. Registers for Two AI using the Loops.so newsletter form
-        3. Waits for and extracts the API key from the confirmation email
-
-        Returns:
-            str: The generated API key
-
-        Raises:
-            Exception: If the API key cannot be generated
-        """
-        # Get a temporary email
-        email, provider = get_random_email("tempmailio")
-
-        # Register for Two AI using the Loops.so newsletter form
-        loops_url = "https://app.loops.so/api/newsletter-form/cm7i4o92h057auy1o74cxbhxo"
-
-        # Create a session with appropriate headers
-        session = Session()
-        session.headers.update({
-            'User-Agent': LitAgent().random(),
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Origin': 'https://www.two.ai',
-            'Referer': 'https://app.loops.so/',
-        })
-
-        # Prepare form data
-        form_data = {
-            'email': email,
-            'userGroup': 'Via Framer',
-            'mailingLists': 'cm8ay9cic00x70kjv0bd34k66'
-        }
-
-        # Send the registration request
-        encoded_data = urllib.parse.urlencode(form_data)
-        response = session.post(loops_url, data=encoded_data, impersonate="chrome120")
-
-        if response.status_code != 200:
-            raise Exception(f"Failed to register for Two AI: {response.status_code} - {response.text}")
-
-        # Wait for the confirmation email and extract the API key
-        max_attempts = 5 
-        attempt = 0
-        api_key = None
-        wait_time = 2 
-
-        while attempt < max_attempts and not api_key:
-            messages = provider.get_messages()
-
-            for message in messages:
-                # Check if this is likely the confirmation email based on subject and sender
-                subject = message.get('subject', '')
-                sender = ''
-
-                # Try to get the sender from different possible fields
-                if 'from' in message:
-                    if isinstance(message['from'], dict):
-                        sender = message['from'].get('address', '')
-                    else:
-                        sender = str(message['from'])
-                elif 'sender' in message:
-                    if isinstance(message['sender'], dict):
-                        sender = message['sender'].get('address', '')
-                    else:
-                        sender = str(message['sender'])
-
-                # Look for keywords in the subject that indicate this is the confirmation email
-                subject_match = any(keyword in subject.lower() for keyword in
-                                   ['welcome', 'confirm', 'verify', 'api', 'key', 'sutra', 'two.ai', 'loops'])
-
-                # Look for keywords in the sender that indicate this is from Two AI or Loops
-                sender_match = any(keyword in sender.lower() for keyword in
-                                  ['two.ai', 'sutra', 'loops.so', 'loops', 'no-reply', 'noreply'])
-
-                is_confirmation = subject_match or sender_match
-
-                if is_confirmation:
-                    pass
-                # Try to get the message content from various possible fields
-                content = None
-
-                # Check for body field (seen in the debug output)
-                if 'body' in message:
-                    content = message['body']
-                # Check for content.text field
-                elif 'content' in message and 'text' in message['content']:
-                    content = message['content']['text']
-                # Check for html field
-                elif 'html' in message:
-                    content = message['html']
-                # Check for text field
-                elif 'text' in message:
-                    content = message['text']
-
-                if not content:
-                    continue
-                # Look for the API key pattern in the email content
-                # First, try to find the API key directly
-                api_key_match = re.search(r'sutra_[A-Za-z0-9]{60,70}', content)
-
-                # If not found, try looking for the key with the label
-                if not api_key_match:
-                    key_section_match = re.search(r'🔑 SUTRA API Key\s*([^\s]+)', content)
-                    if key_section_match:
-                        api_key_match = re.search(r'(sutra_[A-Za-z0-9]+)', key_section_match.group(1))
-
-                # If still not found, try a more general pattern
-                if not api_key_match:
-                    api_key_match = re.search(r'sutra_\S+', content)
-
-                if api_key_match:
-                    api_key = api_key_match.group(0)
-                    break
-            if not api_key:
-                attempt += 1
-                time.sleep(wait_time)
-        if not api_key:
-            raise Exception("Failed to get API key from confirmation email")
-        return api_key
 
     def __init__(
         self,
+        api_key: str,
         is_conversation: bool = True,
         max_tokens: int = 1024,
         timeout: int = 30,
@@ -270,6 +49,7 @@ class TwoAI(Provider):
         Initializes the TwoAI API client.
 
         Args:
+            api_key: TwoAI API key (required).
             is_conversation: Whether to maintain conversation history.
             max_tokens: Maximum number of tokens to generate.
             timeout: Request timeout in seconds.
@@ -286,17 +66,27 @@ class TwoAI(Provider):
         if model not in self.AVAILABLE_MODELS:
             raise ValueError(f"Invalid model: {model}. Choose from: {self.AVAILABLE_MODELS}")
 
-        # Use cached API key or generate new one if needed
-        api_key = self.get_cached_api_key()
+        if not api_key:
+            raise exceptions.AuthenticationError("TwoAI API key is required.")
 
-        self.url = "https://api.two.ai/v2/chat/completions"  # API endpoint
+        self.url = "https://chatsutra-server.account-2b0.workers.dev/v2/chat/completions"  # Correct API endpoint
         self.headers = {
-            'User-Agent': LitAgent().random(),
-            'Accept': 'text/event-stream',  # For streaming responses
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0',
+            'Accept': 'application/json',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Accept-Language': 'en-US,en;q=0.9,en-IN;q=0.8',
             'Content-Type': 'application/json',
-            'Authorization': f'Bearer {api_key}',  # Using Bearer token authentication
             'Origin': 'https://chat.two.ai',
-            'Referer': 'https://api.two.app/'
+            'Referer': 'https://chatsutra-server.account-2b0.workers.dev/',
+            'Sec-Ch-Ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Microsoft Edge";v="140"',
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"Windows"',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'cross-site',
+            'Sec-Gpc': '1',
+            'Dnt': '1',
+            'X-Session-Token': api_key  # Using session token instead of Bearer auth
         }
 
         # Initialize curl_cffi Session
@@ -403,7 +193,6 @@ class TwoAI(Provider):
             "model": self.model,
             "temperature": self.temperature,
             "max_tokens": self.max_tokens_to_sample,
-            "stream": stream,
             "extra_body": {
                 "online_search": online_search,
             }
@@ -416,8 +205,7 @@ class TwoAI(Provider):
                     self.url,
                     json=payload,
                     stream=True,
-                    timeout=self.timeout,
-                    impersonate="chrome110"
+                    timeout=self.timeout
                 )
 
                 if response.status_code != 200:
@@ -431,18 +219,17 @@ class TwoAI(Provider):
                         f"Request failed with status code {response.status_code} - {error_detail}"
                     )
 
-                # Use sanitize_stream for SSE processing
+                # Use sanitize_stream to process the SSE stream
                 processed_stream = sanitize_stream(
-                    data=response.iter_content(chunk_size=None), # Pass byte iterator
+                    data=response.iter_content(chunk_size=None),
                     intro_value="data:",
-                    to_json=True,     # Stream sends JSON
+                    to_json=True,
                     skip_markers=["[DONE]"],
-                    content_extractor=self._twoai_extractor, # Use the specific extractor
-                    yield_raw_on_error=False # Skip non-JSON lines or lines where extractor fails
+                    content_extractor=self._twoai_extractor,
+                    yield_raw_on_error=False
                 )
 
                 for content_chunk in processed_stream:
-                    # content_chunk is the string extracted by _twoai_extractor
                     if content_chunk and isinstance(content_chunk, str):
                         streaming_text += content_chunk
                         resp = dict(text=content_chunk)
@@ -482,8 +269,8 @@ class TwoAI(Provider):
             # self.last_response and history are updated within for_stream's try/finally
             return self.last_response # Return the final aggregated dict
 
-        effective_stream = stream if stream is not None else True
-        return for_stream() if effective_stream else for_non_stream()
+        # The API uses SSE streaming for all requests, so we always use streaming
+        return for_stream()
 
     def chat(
         self,
@@ -494,36 +281,24 @@ class TwoAI(Provider):
         online_search: bool = True,
         image_path: str = None,
     ) -> str:
-        effective_stream = stream if stream is not None else True
-
-        def for_stream_chat():
-            # ask() yields dicts when raw=False (default for chat)
-            gen = self.ask(
-                prompt,
-                stream=True,
-                raw=False, # Ensure ask yields dicts
-                optimizer=optimizer,
-                conversationally=conversationally,
-                online_search=online_search,
-                image_path=image_path,
-            )
-            for response_dict in gen:
-                yield self.get_message(response_dict) # get_message expects dict
-
-        def for_non_stream_chat():
-             # ask() returns a dict when stream=False
-            response_dict = self.ask(
-                prompt,
-                stream=False, # Ensure ask returns dict
-                raw=False,
-                optimizer=optimizer,
-                conversationally=conversationally,
-                online_search=online_search,
-                image_path=image_path,
-            )
-            return self.get_message(response_dict) # get_message expects dict
-
-        return for_stream_chat() if effective_stream else for_non_stream_chat()
+        # The API uses SSE streaming for all requests, so we always aggregate
+        aggregated_text = ""
+        gen = self.ask(
+            prompt,
+            stream=True,
+            raw=False, # Ensure ask yields dicts
+            optimizer=optimizer,
+            conversationally=conversationally,
+            online_search=online_search,
+            image_path=image_path,
+        )
+        for response_dict in gen:
+            if isinstance(response_dict, dict) and "text" in response_dict:
+                aggregated_text += response_dict["text"]
+            elif isinstance(response_dict, str):
+                aggregated_text += response_dict
+        
+        return aggregated_text
 
     def get_message(self, response: dict) -> str:
         assert isinstance(response, dict), "Response should be of dict data-type only"
@@ -531,38 +306,8 @@ class TwoAI(Provider):
 
 
 if __name__ == "__main__":
-    print("-" * 80)
-    print(f"{'Model':<50} {'Status':<10} {'Response'}")
-    print("-" * 80)
-
-    for model in TwoAI.AVAILABLE_MODELS:
-        try:
-            test_ai = TwoAI(model=model, timeout=60)
-            # Test stream first
-            response_stream = test_ai.chat("Say 'Hello' in one word", stream=True)
-            response_text = ""
-            print(f"\r{model:<50} {'Streaming...':<10}", end="", flush=True)
-            for chunk in response_stream:
-                response_text += chunk
-                # Optional: print chunks as they arrive for visual feedback
-                # print(chunk, end="", flush=True) 
-            
-            if response_text and len(response_text.strip()) > 0:
-                status = "✓"
-                # Clean and truncate response
-                clean_text = response_text.strip() # Already decoded in get_message
-                display_text = clean_text[:50] + "..." if len(clean_text) > 50 else clean_text
-            else:
-                status = "✗ (Stream)"
-                display_text = "Empty or invalid stream response"
-            print(f"\r{model:<50} {status:<10} {display_text}")
-            
-            # Optional: Add non-stream test if needed, but stream test covers basic functionality
-            # print(f"\r{model:<50} {'Non-Stream...':<10}", end="", flush=True)
-            # response_non_stream = test_ai.chat("Say 'Hi' again", stream=False)
-            # if not response_non_stream or len(response_non_stream.strip()) == 0:
-            #      print(f"\r{model:<50} {'✗ (Non-Stream)':<10} Empty non-stream response")
-
-
-        except Exception as e:
-            print(f"\r{model:<50} {'✗':<10} {str(e)}")
+    from rich import print
+    ai = TwoAI(api_key="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJzanl2OHJtZGxDZDFnQ2hQdGxzZHdxUlVteXkyIiwic291cmNlIjoiRmlyZWJhc2UiLCJpYXQiOjE3NTc4NTEyMzYsImV4cCI6MTc1Nzg1MjEzNn0.ilTYrHRdN3_cme6VW3knWWfbypY_n_gsUe9DeDhEwrM", model="sutra-v2", temperature=0.7)
+    response = ai.chat("Write a poem about AI in the style of Shakespeare.")
+    for chunk in response:
+        print(chunk, end="", flush=True)

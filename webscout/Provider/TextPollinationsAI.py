@@ -14,23 +14,16 @@ class TextPollinationsAI(Provider):
     A class to interact with the Pollinations AI API.
     """
 
+    required_auth = False
     AVAILABLE_MODELS = [
         "deepseek-reasoning",
         "gemini",
-        "gpt-5-nano",
-        "llama-fast-roblox",
-        "llama-roblox",
-        "llamascout",
         "mistral",
-        "mistral-nemo-roblox",
-        "mistral-roblox",
         "nova-fast",
         "openai",
         "openai-audio",
         "openai-fast",
-        "openai-large",
         "openai-reasoning",
-        "openai-roblox",
         "qwen-coder",
         "roblox-rp",
         "bidara",
@@ -38,7 +31,6 @@ class TextPollinationsAI(Provider):
         "midijourney",
         "mirexa",
         "rtist",
-        "sur",
         "unity",
     ]
     _models_url = "https://text.pollinations.ai/models"

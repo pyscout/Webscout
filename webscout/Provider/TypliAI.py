@@ -33,6 +33,7 @@ class TypliAI(Provider):
         >>> print(response)
         'I don't have access to real-time weather information...'
     """
+    required_auth = False
     AVAILABLE_MODELS = ["gpt-4o-mini"]
 
     def __init__(

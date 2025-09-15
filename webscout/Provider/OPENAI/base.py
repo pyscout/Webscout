@@ -1,19 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Union, Generator, Any, TypedDict, Callable
 import json
+import requests
 from dataclasses import dataclass
 
 # Import WebScout Litlogger instead of standard logging
 from webscout.Litlogger import Logger, LogLevel
 
 logger = Logger(name="OpenAIBase", level=LogLevel.INFO)
-
-# Import the LitMeta metaclass from Litproxy
-try:
-    from litproxy import LitMeta 
-except ImportError:
-    from .autoproxy import ProxyAutoMeta as LitMeta
-
 
 # Import the utils for response structures
 from webscout.Provider.OPENAI.utils import ChatCompletion, ChatCompletionChunk
@@ -182,39 +176,25 @@ class BaseChat(ABC):
     completions: BaseCompletions
 
 
-class OpenAICompatibleProvider(ABC, metaclass=LitMeta):
+class OpenAICompatibleProvider(ABC):
     """
     Abstract Base Class for providers mimicking the OpenAI Python client structure.
     Requires a nested 'chat.completions' structure with tool support.
-    All subclasses automatically get proxy support via LitMeta.
-
-    # Available proxy helpers:
-    # - self.get_proxied_session() - returns a requests.Session with proxies
-    # - self.get_proxied_curl_session() - returns a curl_cffi.Session with proxies
-    # - self.get_proxied_curl_async_session() - returns a curl_cffi.AsyncSession with proxies
-
-    # Proxy support is automatically injected into:
-    # - requests.Session objects
-    # - httpx.Client objects
-    # - curl_cffi.requests.Session objects
-    # - curl_cffi.requests.AsyncSession objects
-    #
-    # Inbuilt auto-retry is also enabled for all requests.Session and curl_cffi.Session objects.
+    Users can provide their own proxies via the proxies parameter.
     """
     chat: BaseChat
     available_tools: Dict[str, Tool] = {}  # Dictionary of available tools
     supports_tools: bool = False  # Whether the provider supports tools
     supports_tool_choice: bool = False  # Whether the provider supports tool_choice
 
-    @abstractmethod
-    def __init__(self, api_key: Optional[str] = None, tools: Optional[List[Tool]] = None, proxies: Optional[dict] = None, disable_auto_proxy: bool = False, **kwargs: Any):
+    def __init__(self, api_key: Optional[str] = None, tools: Optional[List[Tool]] = None, proxies: Optional[dict] = None, **kwargs: Any):
         self.available_tools = {}
         if tools:
             self.register_tools(tools)
-        # self.proxies is set by ProxyAutoMeta
-        # Subclasses should use self.proxies for all network requests
-        # Optionally, use self.get_proxied_session() for a requests.Session with proxies
-        # The disable_auto_proxy parameter is handled by ProxyAutoMeta
+        self.proxies = proxies or {}
+        self.session = requests.Session()
+        if self.proxies:
+            self.session.proxies.update(self.proxies)
         # raise NotImplementedError  # <-- Commented out for metaclass test
 
     @property

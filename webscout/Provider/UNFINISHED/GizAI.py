@@ -29,7 +29,7 @@ class GizAI(Provider):
         >>> response = ai.chat("What's the weather today?")
         >>> print(response)
     """
-    
+    required_auth = False
     AVAILABLE_MODELS = [
         "azure-gpt-4-1",
         "chat-gpt4",

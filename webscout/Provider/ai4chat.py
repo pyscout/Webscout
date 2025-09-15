@@ -11,7 +11,7 @@ class AI4Chat(Provider):
     """
     A class to interact with the AI4Chat Riddle API.
     """
-
+    required_auth = False
     def __init__(
         self,
         is_conversation: bool = True,

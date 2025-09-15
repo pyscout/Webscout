@@ -28,6 +28,7 @@ class WrDoChat(Provider):
         >>> print(response)
     """
 
+    required_auth = True
     AVAILABLE_MODELS = [
         "deepseek-chat-v3-0324",
         "deepseek-r1",

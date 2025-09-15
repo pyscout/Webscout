@@ -1,19 +1,21 @@
+
+import re
+from typing import Optional, Union, Any, AsyncGenerator, Dict
 from curl_cffi.requests import Session
 from curl_cffi import CurlError
-import json
 
 from webscout.AIutel import Optimizers
 from webscout.AIutel import Conversation
 from webscout.AIutel import AwesomePrompts, sanitize_stream # Import sanitize_stream
 from webscout.AIbase import Provider
 from webscout import exceptions
-from typing import Optional, Union, Any, AsyncGenerator, Dict
 from webscout.litagent import LitAgent
 
 class TurboSeek(Provider):
     """
     This class provides methods for interacting with the TurboSeek API.
     """
+    required_auth = False
     AVAILABLE_MODELS = ["Llama 3.1 70B"]
 
     def __init__(
@@ -58,13 +60,14 @@ class TurboSeek(Provider):
             "dnt": "1",
             "origin": "https://www.turboseek.io",
             "priority": "u=1, i",
-            "referer": "https://www.turboseek.io/?ref=taaft&utm_source=taaft&utm_medium=referral",
-            "sec-ch-ua": '"Not)A;Brand";v="99", "Microsoft Edge";v="127", "Chromium";v="127"',
+            "referer": "https://www.turboseek.io/",
+            "sec-ch-ua": '"Chromium";v="140", "Not=A?Brand";v="24", "Microsoft Edge";v="140"',
             "sec-ch-ua-mobile": "?0",
             "sec-ch-ua-platform": '"Windows"',
             "sec-fetch-dest": "empty",
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-origin",
+            "sec-gpc": "1",
             "user-agent": LitAgent().random(),
         }
 
@@ -89,10 +92,26 @@ class TurboSeek(Provider):
         self.conversation.history_offset = history_offset
 
     @staticmethod
+    def _strip_html_tags(text: str) -> str:
+        """Remove HTML tags from text."""
+        import re
+        # Remove HTML tags and entities
+        text = re.sub(r'<[^>]*>', '', text)
+        text = re.sub(r'&[^;]+;', ' ', text)
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text
+
+    @staticmethod
     def _turboseek_extractor(chunk: Union[str, Dict[str, Any]]) -> Optional[str]:
         """Extracts content from TurboSeek stream JSON objects."""
         if isinstance(chunk, dict) and "text" in chunk:
-            return chunk.get("text") # json.loads already handles unicode escapes
+            text = chunk.get("text")
+            if text:
+                # Clean HTML tags from the response
+                return TurboSeek._strip_html_tags(str(text))
+        elif isinstance(chunk, str):
+            # Handle raw string content
+            return TurboSeek._strip_html_tags(chunk)
         return None
 
     def ask(
@@ -155,7 +174,9 @@ class TurboSeek(Provider):
                     to_json=True,
                     content_extractor=self._turboseek_extractor,
                     yield_raw_on_error=False,
-                    raw=raw
+                    raw=raw,
+                    extract_regexes=[r'<[^>]*>([^<]*)<[^>]*>', r'([^<]+)'],
+                    skip_regexes=[r'<script[^>]*>.*?</script>', r'<style[^>]*>.*?</style>']
                 )
                 for content_chunk in processed_stream:
                     if isinstance(content_chunk, bytes):
@@ -247,19 +268,7 @@ class TurboSeek(Provider):
 if __name__ == '__main__':
     # Ensure curl_cffi is installed
     from rich import print
-    try: # Add try-except block for testing
-        ai = TurboSeek(timeout=60)
-        print("[bold blue]Testing Stream:[/bold blue]")
-        response_stream = ai.chat("yooooooooooo", stream=True, raw=False)
-        for chunk in response_stream:
-            print(chunk, end="", flush=True)
-        # Optional: Test non-stream
-        # print("[bold blue]Testing Non-Stream:[/bold blue]")
-        # response_non_stream = ai.chat("What is the capital of France?", stream=False)
-        # print(response_non_stream)
-        # print("[bold green]Non-Stream Test Complete.[/bold green]")
-
-    except exceptions.FailedToGenerateResponseError as e:
-        print(f"\n[bold red]API Error:[/bold red] {e}")
-    except Exception as e:
-        print(f"\n[bold red]An unexpected error occurred:[/bold red] {e}")
+    ai = TurboSeek(timeout=60)
+    response_stream = ai.chat("How can I get a 6 pack in 3 months?", stream=True, raw=False)
+    for chunk in response_stream:
+        print(chunk, end="", flush=True)

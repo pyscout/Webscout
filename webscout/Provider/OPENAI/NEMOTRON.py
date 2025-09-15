@@ -120,12 +120,9 @@ class NEMOTRON(OpenAICompatibleProvider):
     ]
     
     API_BASE_URL = "https://nemotron.one/api/chat"
-    def __init__(
-        self
-    ):
-        self.session = requests.Session()
+    def __init__(self, proxies: Optional[dict] = None):
+        super().__init__(proxies=proxies)
         self.timeout = 30
-        self.session.proxies = {}
         agent = LitAgent()
         user_agent = agent.random()
         self.base_headers = {

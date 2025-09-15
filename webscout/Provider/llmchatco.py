@@ -16,7 +16,7 @@ class LLMChatCo(Provider):
     """
     A class to interact with the LLMChat.co API
     """
-
+    required_auth = False
     AVAILABLE_MODELS = [
         "gemini-flash-2.0",        # Default model
         "llama-4-scout",

@@ -15,7 +15,7 @@ class OpenGPT(Provider):
     """
     A class to interact with the Open-GPT API.
     """
-
+    required_auth = False
     def __init__(
         self,
         is_conversation: bool = True,

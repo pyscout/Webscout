@@ -394,13 +394,12 @@ class TwoAI(OpenAICompatibleProvider):
             raise RuntimeError("Failed to get API key from confirmation email")
         return api_key
 
-    def __init__(self, browser: str = "chrome"):
+    def __init__(self, browser: str = "chrome", proxies: Optional[Dict[str, str]] = None):
+        super().__init__(proxies=proxies)
         api_key = self.get_cached_api_key()
         self.timeout = 30
         self.base_url = "https://api.two.ai/v2/chat/completions"
         self.api_key = api_key
-        self.session = Session()
-        self.session.proxies = {}
 
         headers: Dict[str, str] = {
             "Content-Type": "application/json",

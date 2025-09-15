@@ -1,11 +1,12 @@
 from os import path
-from json import load, dumps
+from json import dumps
 import warnings
-from typing import Union, Any, Dict
+from typing import Dict
+
 
 # Import internal modules and dependencies
-from ..AIutel import Optimizers, Conversation, AwesomePrompts, sanitize_stream
-from ..AIbase import Provider, AsyncProvider
+from ..AIutel import Optimizers, Conversation
+from ..AIbase import Provider
 from ..Bard import Chatbot, Model
 
 warnings.simplefilter("ignore", category=UserWarning)
@@ -25,6 +26,7 @@ MODEL_ALIASES: Dict[str, Model] = {
 AVAILABLE_MODELS = list(MODEL_ALIASES.keys())
 
 class GEMINI(Provider):
+    required_auth = True
     def __init__(
         self,
         cookie_file: str,

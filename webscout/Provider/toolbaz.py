@@ -21,30 +21,33 @@ class Toolbaz(Provider):
     A class to interact with the Toolbaz API. Supports streaming responses.
     """
 
+    required_auth = False
     AVAILABLE_MODELS = [
         "gemini-2.5-flash",
+        "gemini-2.5-pro",
         "gemini-2.0-flash-thinking",
-        "sonar",
         "gemini-2.0-flash",
-        "gemini-1.5-flash",
+
+        "claude-sonnet-4",
+
+        "gpt-5",
+        "gpt-oss-120b",
         "o3-mini",
         "gpt-4o-latest",
-        "gpt-4o",
-        "deepseek-r1",
-        "Llama-4-Maverick",
-        "Llama-4-Scout",
-        "Llama-3.3-70B",
-        "gpt-oss-120b",
-        "Qwen2.5-72B",
-        "grok-2-1212",
-        "grok-3-beta",
-        "toolbaz_v3",
-        "toolbaz_v3.5_pro",
+
         "toolbaz_v4",
+        "toolbaz_v3.5_pro",
+
+        "deepseek-r1",
+        "deepseek-v3.1",
+        "deepseek-v3",
+
+        "Llama-4-Maverick",
+        "Llama-3.3-70B",
+        
         "mixtral_8x22b",
         "L3-70B-Euryale-v2.1",
         "midnight-rose",
-        "unity",
         "unfiltered_x"
     ]
 

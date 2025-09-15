@@ -251,19 +251,17 @@ class FreeGemini(OpenAICompatibleProvider):
 
     AVAILABLE_MODELS = ["gemini-2.0-flash"]
 
-    def __init__(
-        self,
-    ):
+    def __init__(self, proxies: Optional[dict] = None):
         """
         Initialize the FreeGemini client.
+        
+        Args:
+            proxies: Optional proxy configuration dictionary
         """
+        super().__init__(proxies=proxies)
         self.timeout = 30
         # Update the API endpoint to match the working implementation
         self.api_endpoint = "https://free-gemini.vercel.app/api/google/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse"
-        
-        # Initialize session with curl_cffi for better Cloudflare handling
-        self.session = Session()
-        self.session.proxies = {}
         
         # Use LitAgent for fingerprinting
         self.agent = LitAgent()

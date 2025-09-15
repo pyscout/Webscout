@@ -7,26 +7,31 @@ from curl_cffi import CurlError
 
 from webscout.AIutel import Optimizers
 from webscout.AIutel import Conversation
-from webscout.AIutel import AwesomePrompts, sanitize_stream
+from webscout.AIutel import AwesomePrompts
 from webscout.AIbase import Provider
 from webscout import exceptions
 from webscout.litagent import LitAgent
+from webscout.sanitize import sanitize_stream
 
-class OPENAI(Provider):
+class K2Think(Provider):
     """
-    A class to interact with the OpenAI API with LitAgent user-agent.
+    A class to interact with the K2Think AI API.
     """
-    required_auth = True
+    required_auth = False
+    AVAILABLE_MODELS = [
+        "MBZUAI-IFM/K2-Think",
+
+    ]
+
     def __init__(
         self,
-        api_key: str,
         is_conversation: bool = True,
         max_tokens: int = 600,
         temperature: float = 1,
         presence_penalty: int = 0,
         frequency_penalty: int = 0,
         top_p: float = 1,
-        model: str = "gpt-3.5-turbo",
+        model: str = "MBZUAI-IFM/K2-Think",
         timeout: int = 30,
         intro: str = None,
         filepath: str = None,
@@ -34,31 +39,41 @@ class OPENAI(Provider):
         proxies: dict = {},
         history_offset: int = 10250,
         act: str = None,
-        base_url: str = "https://api.openai.com/v1/chat/completions",
+        base_url: str = "https://www.k2think.ai/api/guest/chat/completions",
         system_prompt: str = "You are a helpful assistant.",
         browser: str = "chrome"
     ):
-        """Initializes the OpenAI API client."""
+        """Initializes the K2Think AI client."""
         self.url = base_url
 
         # Initialize LitAgent
         self.agent = LitAgent()
         self.fingerprint = self.agent.generate_fingerprint(browser)
-        self.api_key = api_key
+
         # Use the fingerprint for headers
         self.headers = {
-            "Accept": self.fingerprint["accept"],
+            "Accept": "*/*",
+            "Accept-Encoding": "gzip, deflate, br, zstd",
             "Accept-Language": self.fingerprint["accept_language"],
+            "Content-Type": "application/json",
             "User-Agent": self.fingerprint.get("user_agent", ""),
+            "Origin": "https://www.k2think.ai",
+            "Referer": "https://www.k2think.ai/guest",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "Sec-Ch-Ua": '"Chromium";v="140", "Not=A?Brand";v="24", "Microsoft Edge";v="140"',
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"Windows"',
+            "Priority": "u=1, i"
         }
-        if self.api_key:
-            self.headers["Authorization"] = f"Bearer {self.api_key}"
 
         # Initialize curl_cffi Session
         self.session = Session()
         # Update curl_cffi session headers and proxies
         self.session.headers.update(self.headers)
         self.session.proxies = proxies  # Assign proxies directly
+
         self.system_prompt = system_prompt
         self.is_conversation = is_conversation
         self.max_tokens_to_sample = max_tokens
@@ -75,6 +90,7 @@ class OPENAI(Provider):
             for method in dir(Optimizers)
             if callable(getattr(Optimizers, method)) and not method.startswith("__")
         )
+
         Conversation.intro = (
             AwesomePrompts().get_act(
                 act, raise_not_found=True, default=None, case_insensitive=True
@@ -100,8 +116,8 @@ class OPENAI(Provider):
 
         # Update headers with new fingerprint (only relevant ones)
         self.headers.update({
-            "Accept": self.fingerprint["accept"],
             "Accept-Language": self.fingerprint["accept_language"],
+            "User-Agent": self.fingerprint.get("user_agent", ""),
         })
 
         # Update session headers
@@ -128,20 +144,16 @@ class OPENAI(Provider):
 
         # Payload construction
         payload = {
+            "stream": stream,
             "model": self.model,
             "messages": [
                 {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": conversation_prompt},
+                {"role": "user", "content": conversation_prompt}
             ],
-            "stream": stream,
-            "temperature": self.temperature,
-            "top_p": self.top_p,
-            "presence_penalty": self.presence_penalty,
-            "frequency_penalty": self.frequency_penalty,
+            "params": {}
         }
 
         def for_stream():
-            streaming_text = ""
             try:
                 # Use curl_cffi session post with impersonate
                 response = self.session.post(
@@ -153,62 +165,101 @@ class OPENAI(Provider):
                 )
                 response.raise_for_status()
 
-                # Use sanitize_stream
-                processed_stream = sanitize_stream(
-                    data=response.iter_content(chunk_size=None),
+                # Extract content using the specified patterns - prioritize answer only
+                extract_regexes = [
+                    r'<answer>([\s\S]*?)<\/answer>',  # Extract answer content only
+                ]
+                
+                skip_regexes = [
+                    r'^\s*$',  # Skip empty lines
+                    r'data:\s*\[DONE\]',  # Skip done markers  
+                    r'data:\s*$',  # Skip empty data lines
+                    r'^\s*\{\s*\}\s*$',  # Skip empty JSON objects
+                    r'<details type="reasoning"[^>]*>.*?<\/details>',  # Skip reasoning sections entirely
+                ]
+
+                streaming_text = ""
+                
+                # Use sanitize_stream to process the response
+                stream_chunks = sanitize_stream(
+                    response.iter_content(chunk_size=None),
                     intro_value="data:",
-                    to_json=True,
-                    skip_markers=["[DONE]"],
-                    content_extractor=lambda chunk: chunk.get("choices", [{}])[0].get("delta", {}).get("content") if isinstance(chunk, dict) else None,
+                    to_json=False,  # Don't parse as JSON, use regex extraction
+                    skip_regexes=skip_regexes,
+                    extract_regexes=extract_regexes,
+                    encoding='utf-8',
                     yield_raw_on_error=False
                 )
-
-                for content_chunk in processed_stream:
+                
+                for content_chunk in stream_chunks:
                     if content_chunk and isinstance(content_chunk, str):
-                        streaming_text += content_chunk
-                        resp = dict(text=content_chunk)
-                        yield resp if not raw else content_chunk
+                        content_cleaned = content_chunk.strip()
+                        if content_cleaned:
+                            streaming_text += content_cleaned
+                            yield {"text": content_cleaned}
 
             except CurlError as e:
                 raise exceptions.FailedToGenerateResponseError(f"Request failed (CurlError): {str(e)}") from e
             except Exception as e:
                 raise exceptions.FailedToGenerateResponseError(f"Request failed ({type(e).__name__}): {str(e)}") from e
             finally:
+                # Update history after stream finishes or fails
                 if streaming_text:
                     self.last_response = {"text": streaming_text}
                     self.conversation.update_chat_history(prompt, streaming_text)
 
         def for_non_stream():
             try:
-                # Use curl_cffi session post with impersonate for non-streaming
+                # For non-streaming, we still need to handle the stream format
                 response = self.session.post(
                     self.url,
                     data=json.dumps(payload),
+                    stream=True,
                     timeout=self.timeout,
                     impersonate="chrome110"
                 )
                 response.raise_for_status()
 
-                response_text = response.text
+                # Extract content using the specified patterns
+                extract_regexes = [
+                    r'<answer>([\s\S]*?)<\/answer>',  # Extract answer content
+                    r'<details type="reasoning"[^>]*>.*?<summary>.*?<\/summary>([\s\S]*?)<\/details>',  # Extract reasoning content
+                ]
+                
+                skip_regexes = [
+                    r'^\s*$',  # Skip empty lines
+                    r'data:\s*\[DONE\]',  # Skip done markers  
+                    r'data:\s*$',  # Skip empty data lines
+                    r'^\s*\{\s*\}\s*$',  # Skip empty JSON objects
+                ]
 
-                # Use sanitize_stream to parse the non-streaming JSON response
-                processed_stream = sanitize_stream(
-                    data=response_text,
-                    to_json=True,
-                    intro_value=None,
-                    content_extractor=lambda chunk: chunk.get("choices", [{}])[0].get("message", {}).get("content") if isinstance(chunk, dict) else None,
+                streaming_text = ""
+
+                # Use sanitize_stream to process the response
+                stream_chunks = sanitize_stream(
+                    response.iter_content(chunk_size=None),
+                    intro_value="data:",
+                    to_json=False,  # Don't parse as JSON, use regex extraction
+                    skip_regexes=skip_regexes,
+                    extract_regexes=extract_regexes,
+                    encoding='utf-8',
                     yield_raw_on_error=False
                 )
-                # Extract the single result
-                content = next(processed_stream, None)
-                content = content if isinstance(content, str) else ""
+                
+                for content_chunk in stream_chunks:
+                    if content_chunk and isinstance(content_chunk, str):
+                        content_cleaned = content_chunk.strip()
+                        if content_cleaned:
+                            # Decode JSON escape sequences
+                            content_decoded = content_cleaned.encode().decode('unicode_escape')
+                            streaming_text += content_decoded
 
-                self.last_response = {"text": content}
-                self.conversation.update_chat_history(prompt, content)
-                return self.last_response if not raw else content
+                self.last_response = {"text": streaming_text}
+                self.conversation.update_chat_history(prompt, streaming_text)
+                return self.last_response if not raw else streaming_text
 
             except CurlError as e:
-                raise exceptions.FailedToGenerateResponseError(f"Request failed (CurlError): {e}") from e
+                raise exceptions.FailedToGenerateResponseError(f"Request failed (CurlError): {str(e)}") from e
             except Exception as e:
                 err_text = getattr(e, 'response', None) and getattr(e.response, 'text', '')
                 raise exceptions.FailedToGenerateResponseError(f"Request failed ({type(e).__name__}): {e} - {err_text}") from e
@@ -241,4 +292,17 @@ class OPENAI(Provider):
 
     def get_message(self, response: dict) -> str:
         assert isinstance(response, dict), "Response should be of dict data-type only"
-        return response["text"]
+        return response["text"].replace('\\n', '\n').replace('\\n\\n', '\n\n')
+
+if __name__ == "__main__":
+    # Simple test
+    try:
+        ai = K2Think(model="MBZUAI-IFM/K2-Think", timeout=30)
+        response = ai.chat("What is artificial intelligence?", stream=True)
+        for chunk in response:
+            print(chunk, end="", flush=True)
+        print()
+    except Exception as e:
+        print(f"Error: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()

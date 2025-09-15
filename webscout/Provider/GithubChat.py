@@ -4,6 +4,8 @@ import json
 import time
 from typing import Any, Dict, List, Optional, Union, Generator
 
+from flask import request
+
 from webscout.AIutel import Conversation
 from webscout.AIutel import Optimizers
 from webscout.AIutel import AwesomePrompts, sanitize_stream # Import sanitize_stream
@@ -16,7 +18,7 @@ class GithubChat(Provider):
     A class to interact with the GitHub Copilot Chat API.
     Uses cookies for authentication and supports streaming responses.
     """
-    
+    required_auth = True
     # Available models
     AVAILABLE_MODELS = [
         "gpt-4o",

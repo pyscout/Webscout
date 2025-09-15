@@ -1,13 +1,11 @@
 from curl_cffi.requests import Session
 from curl_cffi import CurlError
 import json
-import os
-from typing import Any, Dict, Optional, Generator, Union, List
-
+from typing import Any, Dict, Optional, Generator, Union
 from webscout.AIutel import Optimizers
 from webscout.AIutel import Conversation
 from webscout.AIutel import AwesomePrompts, sanitize_stream # Import sanitize_stream
-from webscout.AIbase import Provider, AsyncProvider
+from webscout.AIbase import Provider
 from webscout import exceptions
 from webscout.litagent import LitAgent
 
@@ -15,11 +13,12 @@ class DeepInfra(Provider):
     """
     A class to interact with the DeepInfra API with LitAgent user-agent.
     """
-
+    required_auth = False
     AVAILABLE_MODELS = [
-        "anthropic/claude-4-opus",
         "moonshotai/Kimi-K2-Instruct",
-        "anthropic/claude-4-sonnet",
+        "Qwen/Qwen3-Next-80B-A3B-Instruct",
+        "Qwen/Qwen3-Next-80B-A3B-Thinking",
+        "moonshotai/Kimi-K2-Instruct-0905",
         "deepseek-ai/DeepSeek-R1-0528-Turbo",
         "Qwen/Qwen3-235B-A22B-Thinking-2507",
         "Qwen/Qwen3-Coder-480B-A35B-Instruct",
@@ -39,8 +38,6 @@ class DeepInfra(Provider):
         "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
         "microsoft/phi-4-reasoning-plus",
         "Qwen/QwQ-32B",
-        "google/gemini-2.5-flash",
-        "google/gemini-2.5-pro",
         "google/gemma-3-27b-it",
         "google/gemma-3-12b-it",
         "google/gemma-3-4b-it",
@@ -61,7 +58,6 @@ class DeepInfra(Provider):
         "Sao10K/L3-8B-Lunaris-v1-Turbo",
         "Sao10K/L3.1-70B-Euryale-v2.2",
         "Sao10K/L3.3-70B-Euryale-v2.3",
-        "anthropic/claude-3-7-sonnet-latest",
         "deepseek-ai/DeepSeek-R1",
         "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
         "deepseek-ai/DeepSeek-R1-Turbo",

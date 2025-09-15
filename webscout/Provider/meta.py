@@ -3,7 +3,7 @@ import logging
 import time
 import urllib
 import uuid
-from typing import Dict, Generator, Iterator, List, Union
+from typing import Dict, Generator, List, Union
 
 import random
 from curl_cffi import CurlError
@@ -12,7 +12,7 @@ from webscout.scout import Scout
 
 from webscout.AIutel import Optimizers
 from webscout.AIutel import Conversation
-from webscout.AIutel import AwesomePrompts, sanitize_stream
+from webscout.AIutel import AwesomePrompts
 from webscout.AIbase import Provider
 from webscout import exceptions
 from webscout.litagent import LitAgent as Lit
@@ -299,7 +299,7 @@ class Meta(Provider):
     A class to interact with the Meta AI API to obtain and use access tokens for sending
     and receiving messages from the Meta AI Chat API.
     """
-
+    required_auth = False
     def __init__(
         self,
         fb_email: str = None,

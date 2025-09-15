@@ -1,11 +1,9 @@
 from curl_cffi.requests import Session
 from curl_cffi import CurlError
 import json
-import time
 import random
-import re
 import uuid
-from typing import Any, Dict, List, Optional, Union, Generator
+from typing import Any, Dict, Optional, Union, Generator
 
 from webscout.AIutel import Conversation, sanitize_stream
 from webscout.AIbase import Provider # Import sanitize_stream
@@ -18,7 +16,7 @@ class LambdaChat(Provider):
     Supports streaming responses.
     """
     url = "https://lambda.chat"
-
+    required_auth = False
     AVAILABLE_MODELS = [
         "deepseek-llama3.3-70b",
         "apriel-5b-instruct",

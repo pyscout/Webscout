@@ -16,7 +16,7 @@ class LearnFast(Provider):
     """
     A class to interact with the LearnFast.ai API.
     """
-
+    required_auth = False
     def __init__(
         self,
         is_conversation: bool = True,

@@ -31,7 +31,7 @@ class DeepSeekAssistant(Provider):
     """
 
     AVAILABLE_MODELS = ["V3 model", "R1 model"]
-
+    required_auth = False
     @staticmethod
     def _deepseek_assistant_extractor(chunk: Union[str, Dict[str, Any]]) -> Optional[str]:
         """Extracts content from DeepSeek Assistant stream JSON objects."""

@@ -16,52 +16,18 @@ class SciraAI(Provider):
     """
     A class to interact with the Scira AI chat API.
     """
-
+    required_auth = False
     # Model mapping: actual model names to Scira API format
     MODEL_MAPPING = {
         "grok-3-mini": "scira-default",
-        "grok-3-mini-fast": "scira-x-fast-mini",
-        "grok-3-fast": "scira-x-fast",
-        "gpt-4.1-nano": "scira-nano",
-        "grok-3": "scira-grok-3",
-        "grok-4": "scira-grok-4",
-        "grok-2-vision-1212": "scira-vision",
-        "grok-2-latest": "scira-g2",
-        "gpt-4o-mini": "scira-4o-mini",
-        "o4-mini-2025-04-16": "scira-o4-mini",
-        "o3": "scira-o3",
-        "qwen/qwen3-32b": "scira-qwen-32b",
-        "qwen3-30b-a3b": "scira-qwen-30b",
-        "deepseek-v3-0324": "scira-deepseek-v3",
-        "claude-3-5-haiku-20241022": "scira-haiku",
-        "mistral-small-latest": "scira-mistral",
-        "gemini-2.5-flash-lite-preview-06-17": "scira-google-lite",
-        "gemini-2.5-flash": "scira-google",
-        "gemini-2.5-pro": "scira-google-pro",
-        "claude-sonnet-4-20250514": "scira-anthropic",
-        "claude-sonnet-4-20250514-thinking": "scira-anthropic-thinking",
-        "claude-4-opus-20250514": "scira-opus",
-        "claude-4-opus-20250514-pro": "scira-opus-pro",
-        "meta-llama/llama-4-maverick-17b-128e-instruct": "scira-llama-4",
-        "kimi-k2-instruct": "scira-kimi-k2",
-        "scira-kimi-k2": "kimi-k2-instruct",
+        "llama-4-maverick": "scira-llama-4",
+        "qwen3-4b": "scira-qwen-4b",
+        "qwen3-32b": "scira-qwen-32b",
+        "qwen3-4b-thinking": "scira-qwen-4b-thinking",
     }
     
     # Reverse mapping: Scira format to actual model names
     SCIRA_TO_MODEL = {v: k for k, v in MODEL_MAPPING.items()}
-    # Add special cases for aliases and duplicate mappings
-    SCIRA_TO_MODEL["scira-anthropic-thinking"] = "claude-sonnet-4-20250514"
-    SCIRA_TO_MODEL["scira-opus-pro"] = "claude-4-opus-20250514"
-    SCIRA_TO_MODEL["scira-x-fast"] = "grok-3-fast"
-    SCIRA_TO_MODEL["scira-x-fast-mini"] = "grok-3-mini-fast"
-    SCIRA_TO_MODEL["scira-nano"] = "gpt-4.1-nano"
-    SCIRA_TO_MODEL["scira-qwen-32b"] = "qwen/qwen3-32b"
-    SCIRA_TO_MODEL["scira-qwen-30b"] = "qwen3-30b-a3b"
-    SCIRA_TO_MODEL["scira-deepseek-v3"] = "deepseek-v3-0324"
-    SCIRA_TO_MODEL["scira-grok-4"] = "grok-4"
-    SCIRA_TO_MODEL["scira-kimi-k2"] = "kimi-k2-instruct"
-    SCIRA_TO_MODEL["kimi-k2-instruct"] = "scira-kimi-k2"
-    MODEL_MAPPING["claude-4-opus-20250514-pro"] = "scira-opus-pro"
     # Available models list (actual model names + scira aliases)
     AVAILABLE_MODELS = list(MODEL_MAPPING.keys()) + list(SCIRA_TO_MODEL.keys())
     
@@ -139,19 +105,21 @@ class SciraAI(Provider):
         
         # Use the fingerprint for headers
         self.headers = {
-            "Accept": self.fingerprint["accept"],
+            "Accept": "*/*",
             "Accept-Encoding": "gzip, deflate, br, zstd",
-            "Accept-Language": self.fingerprint["accept_language"],
+            "Accept-Language": "en-US,en;q=0.9,en-IN;q=0.8",
             "Content-Type": "application/json",
             "Origin": "https://scira.ai",
             "Referer": "https://scira.ai/",
-            "Sec-CH-UA": self.fingerprint["sec_ch_ua"] or '"Not)A;Brand";v="99", "Microsoft Edge";v="127", "Chromium";v="127"',
+            "Sec-CH-UA": '"Chromium";v="140", "Not=A?Brand";v="24", "Microsoft Edge";v="140"',
             "Sec-CH-UA-Mobile": "?0",
-            "Sec-CH-UA-Platform": f'"{self.fingerprint["platform"]}"',
-            "User-Agent": self.fingerprint["user_agent"],
+            "Sec-CH-UA-Platform": '"Windows"',
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0",
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin"
+            "Sec-Fetch-Site": "same-origin",
+            "DNT": "1",
+            "Priority": "u=1, i"
         }
 
         self.session = Session() # Use curl_cffi Session
@@ -196,13 +164,13 @@ class SciraAI(Provider):
         browser = browser or self.fingerprint.get("browser_type", "chrome")
         self.fingerprint = self.agent.generate_fingerprint(browser)
 
-        # Update headers with new fingerprint
+        # Update headers with new fingerprint (keeping the updated values)
         self.headers.update({
-            "Accept": self.fingerprint["accept"],
-            "Accept-Language": self.fingerprint["accept_language"],
-            "Sec-CH-UA": self.fingerprint["sec_ch_ua"] or self.headers["Sec-CH-UA"],
-            "Sec-CH-UA-Platform": f'"{self.fingerprint["platform"]}"',
-            "User-Agent": self.fingerprint["user_agent"],
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.9,en-IN;q=0.8",
+            "Sec-CH-UA": '"Chromium";v="140", "Not=A?Brand";v="24", "Microsoft Edge";v="140"',
+            "Sec-CH-UA-Platform": '"Windows"',
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0",
         })
 
         # Update session headers
@@ -213,19 +181,18 @@ class SciraAI(Provider):
 
     @staticmethod
     def _scira_extractor(chunk: Union[str, Dict[str, Any]]) -> Optional[dict]:
-        """Extracts g and 0 chunks from the Scira stream format.
-        Returns a dict: {"g": [g1, g2, ...], "0": zero} if present.
+        """Extracts JSON chunks from the Scira stream format.
+        Returns a dict with the parsed JSON data.
         """
         if isinstance(chunk, str):
-            g_matches = re.findall(r'g:"(.*?)"', chunk)
-            zero_match = re.search(r'0:"(.*?)"(?=,|$)', chunk)
-            result = {}
-            if g_matches:
-                result["g"] = [g.encode().decode('unicode_escape').replace('\\', '\\').replace('\\"', '"') for g in g_matches]
-            if zero_match:
-                result["0"] = zero_match.group(1).encode().decode('unicode_escape').replace('\\', '\\').replace('\\"', '"')
-            if result:
-                return result
+            if chunk.startswith("data: "):
+                json_str = chunk[6:].strip()  # Remove "data: " prefix
+                if json_str == "[DONE]":
+                    return {"type": "done"}
+                try:
+                    return json.loads(json_str)
+                except json.JSONDecodeError:
+                    return None
         return None
 
     def ask(
@@ -246,8 +213,7 @@ class SciraAI(Provider):
                 raise Exception(f"Optimizer is not one of {self.__available_optimizers}")
 
         messages = [
-            {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": conversation_prompt, "parts": [{"type": "text", "text": conversation_prompt}]}
+            {"role": "user", "content": conversation_prompt, "parts": [{"type": "text", "text": conversation_prompt}], "id": str(uuid.uuid4())[:16]}
         ]
 
         # Prepare the request payload
@@ -257,7 +223,9 @@ class SciraAI(Provider):
             "model": self.model,
             "group": self.search_mode,
             "user_id": self.user_id,
-            "timezone": "Asia/Calcutta"
+            "timezone": "Asia/Calcutta",
+            "isCustomInstructionsEnabled": False,
+            "searchProvider": "parallel"
         }
 
         def for_stream():
@@ -306,41 +274,37 @@ class SciraAI(Provider):
                     if content is None:
                         continue
                     if isinstance(content, dict):
-                        # Handle g chunks
-                        g_chunks = content.get("g", [])
-                        zero_chunk = content.get("0")
-                        if g_chunks:
+                        event_type = content.get("type")
+                        if event_type == "reasoning-start":
                             if not in_think:
                                 if raw:
                                     yield "<think>\n\n"
                                 else:
                                     yield "<think>\n\n"
                                 in_think = True
-                            for g in g_chunks:
+                        elif event_type == "reasoning-delta":
+                            if in_think:
+                                delta = content.get("delta", "")
                                 if raw:
-                                    yield g
+                                    yield delta
                                 else:
-                                    yield dict(text=g)
-                        if zero_chunk is not None:
+                                    yield dict(text=delta)
+                        elif event_type == "reasoning-end":
                             if in_think:
                                 if raw:
                                     yield "</think>\n\n"
                                 else:
                                     yield "</think>\n\n"
                                 in_think = False
+                        elif event_type == "text-delta":
+                            delta = content.get("delta", "")
                             if raw:
-                                yield zero_chunk
+                                yield delta
                             else:
-                                streaming_response += zero_chunk
-                                yield dict(text=zero_chunk)
-                    else:
-                        # fallback for old string/list logic
-                        if raw:
-                            yield content
-                        else:
-                            if content and isinstance(content, str):
-                                streaming_response += content
-                                yield dict(text=content)
+                                streaming_response += delta
+                                yield dict(text=delta)
+                        elif event_type == "done":
+                            break  # End of stream
                 if not raw:
                     self.last_response = {"text": streaming_response}
                     self.conversation.update_chat_history(prompt, streaming_response)
@@ -415,43 +379,6 @@ class SciraAI(Provider):
         return response.get("text", "")
 
 if __name__ == "__main__":
-    print("-" * 80)
-    print(f"{'Model':<50} {'Status':<10} {'Response'}")
-    print("-" * 80)
-    
-    # Test all available models
-    working = 0
-    total = len(SciraAI.AVAILABLE_MODELS)
-    
-    for model in SciraAI.AVAILABLE_MODELS:
-        try:
-            test_ai = SciraAI(model=model, timeout=60)
-            # Test stream first
-            response_stream = test_ai.chat("Say 'Hello' in one word", stream=True)
-            response_text = ""
-            print(f"\r{model:<50} {'Streaming...':<10}", end="", flush=True)
-            for chunk in response_stream:
-                response_text += chunk
-                # Optional: print chunks as they arrive for visual feedback
-                # print(chunk, end="", flush=True) 
-            
-            if response_text and len(response_text.strip()) > 0:
-                status = "✓"
-                # Clean and truncate response
-                clean_text = response_text.strip() # Already decoded in get_message
-                display_text = clean_text[:50] + "..." if len(clean_text) > 50 else clean_text
-            else:
-                status = "✗ (Stream)"
-                display_text = "Empty or invalid stream response"
-            print(f"\r{model:<50} {status:<10} {display_text}")
-            
-            # Optional: Add non-stream test if needed, but stream test covers basic functionality
-            # print(f"\r{model:<50} {'Non-Stream...':<10}", end="", flush=True)
-            # response_non_stream = test_ai.chat("Say 'Hi' again", stream=False)
-            # if not response_non_stream or len(response_non_stream.strip()) == 0:
-            #      print(f"\r{model:<50} {'✗ (Non-Stream)':<10} Empty non-stream response")
-
-
-        except Exception as e:
-            print(f"\r{model:<50} {'✗':<10} {str(e)}")
-
+    ai = SciraAI(model="grok-3-mini", is_conversation=True, system_prompt="You are a helpful assistant.")
+    for resp in ai.chat("Explain the theory of relativity in simple terms.", stream=True, raw=False):
+        print(resp, end="", flush=True)

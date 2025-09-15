@@ -17,7 +17,7 @@ class GROQ(Provider):
     """
     A class to interact with the GROQ AI API.
     """
-
+    required_auth = True
     # Default models list (will be updated dynamically)
     AVAILABLE_MODELS = [
         "distil-whisper-large-v3-en",

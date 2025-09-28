@@ -21,6 +21,7 @@ class DeepInfra(Provider):
         "moonshotai/Kimi-K2-Instruct-0905",
         "deepseek-ai/DeepSeek-R1-0528-Turbo",
         "Qwen/Qwen3-235B-A22B-Thinking-2507",
+        "deepseek-ai/DeepSeek-V3.1-Terminus",
         "Qwen/Qwen3-Coder-480B-A35B-Instruct",
         "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
         "Qwen/Qwen3-235B-A22B-Instruct-2507",

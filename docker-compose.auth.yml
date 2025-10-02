@@ -1,0 +1,155 @@
+# =============================================================================
+# Docker Compose Configuration for Webscout API Server - Auth Mode
+# Uses local build with AttributeError fix
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # -----------------------------------------------------------------------------
+  # Main Webscout API Server with Authentication Enabled
+  # -----------------------------------------------------------------------------
+  webscout-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.local
+      args:
+        - WEBSCOUT_VERSION=latest
+        - BUILD_DATE=${BUILD_DATE:-}
+        - VCS_REF=${VCS_REF:-}
+        - VERSION=${VERSION:-latest}
+    image: webscout-api:local
+    container_name: webscout-api-auth
+    restart: unless-stopped
+
+    # Environment configuration for AUTH MODE
+    environment:
+      # Server settings
+      - WEBSCOUT_HOST=0.0.0.0
+      - WEBSCOUT_PORT=8000
+      - WEBSCOUT_WORKERS=1
+      - WEBSCOUT_LOG_LEVEL=info
+      
+      # FastAPI metadata
+      - WEBSCOUT_API_TITLE=Webscout OpenAI API
+      - WEBSCOUT_API_DESCRIPTION=OpenAI API compatible interface for various LLM providers with enhanced authentication
+      - WEBSCOUT_API_VERSION=0.2.0
+      - WEBSCOUT_API_DOCS_URL=/docs
+      - WEBSCOUT_API_REDOC_URL=/redoc
+      - WEBSCOUT_API_OPENAPI_URL=/openapi.json
+      
+      # Authentication settings - ENABLED
+      - WEBSCOUT_NO_AUTH=false
+      - WEBSCOUT_NO_RATE_LIMIT=false
+      - WEBSCOUT_DATA_DIR=/app/data
+
+      # Database settings (using JSON fallback by default)
+      # Uncomment the line below to use MongoDB
+      # - MONGODB_URL=mongodb://mongodb:27017/webscout
+
+      # Optional API configuration
+      # - WEBSCOUT_API_KEY=your-secret-api-key
+      # - WEBSCOUT_DEFAULT_PROVIDER=ChatGPT
+      # - WEBSCOUT_BASE_URL=/api/v1
+
+      # Debug mode (set to true for development)
+      - WEBSCOUT_DEBUG=false
+
+      # Health check settings
+      - HEALTHCHECK_TIMEOUT=10
+
+    # Port mapping
+    ports:
+      - "${WEBSCOUT_PORT:-8000}:${WEBSCOUT_PORT:-8000}"
+
+    # Volume mounts for persistence
+    volumes:
+      - webscout-logs:/app/logs
+      - webscout-data:/app/data
+
+    # Override default command for enhanced auth system
+    command: ["python", "-m", "webscout.auth.server"]
+
+    # Health check configuration
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${WEBSCOUT_PORT:-8000}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+
+    # Security settings
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Labels for identification
+    labels:
+      - "webscout.mode=auth"
+      - "webscout.description=Authentication enabled - production ready"
+      - "webscout.build=local"
+
+  # -----------------------------------------------------------------------------
+  # MongoDB Database (optional - uncomment to enable)
+  # -----------------------------------------------------------------------------
+  # mongodb:
+  #   image: mongo:7-jammy
+  #   container_name: webscout-mongodb-auth
+  #   restart: unless-stopped
+  #   
+  #   environment:
+  #     - MONGO_INITDB_ROOT_USERNAME=webscout
+  #     - MONGO_INITDB_ROOT_PASSWORD=webscout_password
+  #     - MONGO_INITDB_DATABASE=webscout
+  #   
+  #   ports:
+  #     - "27017:27017"
+  #   
+  #   volumes:
+  #     - mongodb-data:/data/db
+  #     - mongodb-config:/data/configdb
+  #   
+  #   healthcheck:
+  #     test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 10s
+
+# =============================================================================
+# Named volumes for data persistence
+# =============================================================================
+volumes:
+  webscout-logs:
+    driver: local
+  webscout-data:
+    driver: local
+  # mongodb-data:
+  #   driver: local
+  # mongodb-config:
+  #   driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  default:
+    name: webscout-auth-network
+    driver: bridge

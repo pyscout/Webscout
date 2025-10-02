@@ -415,8 +415,7 @@ class Api:
         if not AppConfig.auth_required:
             logger.info("Auth endpoints are disabled (no-auth mode)")
             return
-        auth_components = get_auth_components()
-        api_key_manager = auth_components.get("api_key_manager")
+        api_key_manager, db_manager, rate_limiter = get_auth_components()
 
         @self.app.post(
             "/v1/auth/generate-key",
@@ -498,7 +497,7 @@ class Api:
         async def health_check():
             """Health check endpoint."""
             db_status = "unknown"
-            db_manager = auth_components.get("db_manager")
+            # db_manager is already available from get_auth_components() unpacking
             if db_manager:
                 status_info = db_manager.get_status()
                 db_status = f"{status_info['type']} - {status_info['status']}"

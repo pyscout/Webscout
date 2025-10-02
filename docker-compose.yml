@@ -1,46 +1,48 @@
 # =============================================================================
-# Docker Compose Configuration for Webscout API Server
-# Provides multiple deployment scenarios and configurations
+# Docker Compose Configuration for Webscout API Server - Auth Mode
+# Uses local build with AttributeError fix
 # =============================================================================
-
 
 services:
   # -----------------------------------------------------------------------------
-  # Main Webscout API Server
+  # Main Webscout API Server with Authentication Enabled
   # -----------------------------------------------------------------------------
   webscout-api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
       args:
         - WEBSCOUT_VERSION=latest
         - BUILD_DATE=${BUILD_DATE:-}
         - VCS_REF=${VCS_REF:-}
         - VERSION=${VERSION:-latest}
-    image: webscout-api:latest
-    container_name: webscout-api
+    image: webscout-api:local
+    container_name: webscout-api-auth
     restart: unless-stopped
 
-    # Environment configuration
+    # Environment configuration for AUTH MODE
     environment:
       # Server settings
       - WEBSCOUT_HOST=0.0.0.0
       - WEBSCOUT_PORT=8000
       - WEBSCOUT_WORKERS=1
       - WEBSCOUT_LOG_LEVEL=info
-      # FastAPI metadata (new)
+      
+      # FastAPI metadata
       - WEBSCOUT_API_TITLE=Webscout OpenAI API
       - WEBSCOUT_API_DESCRIPTION=OpenAI API compatible interface for various LLM providers with enhanced authentication
       - WEBSCOUT_API_VERSION=0.2.0
       - WEBSCOUT_API_DOCS_URL=/docs
       - WEBSCOUT_API_REDOC_URL=/redoc
       - WEBSCOUT_API_OPENAPI_URL=/openapi.json
-      # Authentication settings (NEW!)
+      
+      # Authentication settings - ENABLED
       - WEBSCOUT_NO_AUTH=false
       - WEBSCOUT_NO_RATE_LIMIT=false
       - WEBSCOUT_DATA_DIR=/app/data
 
-      # Database settings (NEW!)
+      # Database settings (using JSON fallback by default)
+      # Uncomment the line below to use MongoDB
       # - MONGODB_URL=mongodb://mongodb:27017/webscout
 
       # Optional API configuration
@@ -87,7 +89,7 @@ services:
     # Security settings
     security_opt:
       - no-new-privileges:true
-    read_only: false  # Set to true for maximum security, but may need adjustments
+    read_only: false
 
     # Logging configuration
     logging:
@@ -96,199 +98,38 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  # -----------------------------------------------------------------------------
-  # Production setup with Gunicorn (alternative configuration)
-  # -----------------------------------------------------------------------------
-  webscout-api-production:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        - WEBSCOUT_VERSION=latest
-    image: webscout-api:latest
-    container_name: webscout-api-prod
-    restart: unless-stopped
-    profiles:
-      - production
-
-    environment:
-      - WEBSCOUT_HOST=0.0.0.0
-      - WEBSCOUT_PORT=8000
-      - WEBSCOUT_WORKERS=4  # More workers for production
-      - WEBSCOUT_LOG_LEVEL=warning
-      - WEBSCOUT_DEBUG=false
-      # Authentication enabled by default in production
-      - WEBSCOUT_NO_AUTH=false
-      - WEBSCOUT_NO_RATE_LIMIT=false
-      - WEBSCOUT_DATA_DIR=/app/data
-
-    ports:
-      - "${WEBSCOUT_PORT:-8000}:${WEBSCOUT_PORT:-8000}"
-
-    volumes:
-      - webscout-logs:/app/logs
-      - webscout-data:/app/data
-
-    command: [
-      "gunicorn",
-      "--bind", "0.0.0.0:${WEBSCOUT_PORT:-8000}",
-      "--workers", "4",
-      "--worker-class", "uvicorn.workers.UvicornWorker",
-      "--log-level", "warning",
-      "--access-logfile", "/app/logs/access.log",
-      "--error-logfile", "/app/logs/error.log",
-      "--preload",
-      "webscout.auth.server:create_app"
-    ]
-
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: '2.0'
-        reservations:
-          memory: 1G
-          cpus: '1.0'
+    # Labels for identification
+    labels:
+      - "webscout.mode=auth"
+      - "webscout.description=Authentication enabled - production ready"
+      - "webscout.build=local"
 
   # -----------------------------------------------------------------------------
-  # Development setup with hot reload
+  # MongoDB Database (optional - uncomment to enable)
   # -----------------------------------------------------------------------------
-  webscout-api-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: builder  # Use builder stage for development
-      args:
-        - WEBSCOUT_VERSION=latest
-    image: webscout-api:dev
-    container_name: webscout-api-dev
-    restart: unless-stopped
-    profiles:
-      - development
-
-    environment:
-      - WEBSCOUT_HOST=0.0.0.0
-      - WEBSCOUT_PORT=8000
-      - WEBSCOUT_WORKERS=1
-      - WEBSCOUT_LOG_LEVEL=debug
-      - WEBSCOUT_DEBUG=true
-      # No-auth mode for easier development
-      - WEBSCOUT_NO_AUTH=true
-      - WEBSCOUT_NO_RATE_LIMIT=true
-      - WEBSCOUT_DATA_DIR=/app/data
-
-    ports:
-      - "${WEBSCOUT_PORT:-8000}:${WEBSCOUT_PORT:-8000}"
-
-    volumes:
-      - .:/app  # Mount source code for development
-      - webscout-logs:/app/logs
-      - webscout-data:/app/data
-
-    command: [
-      "uvicorn",
-      "--host", "0.0.0.0",
-      "--port", "${WEBSCOUT_PORT:-8000}",
-      "--reload",
-      "--log-level", "debug",
-      "webscout.auth.server:create_app"
-    ]
-
-  # -----------------------------------------------------------------------------
-  # MongoDB Database (optional)
-  # -----------------------------------------------------------------------------
-  mongodb:
-    image: mongo:7-jammy
-    container_name: webscout-mongodb
-    restart: unless-stopped
-    profiles:
-      - mongodb
-      - production
-
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=webscout
-      - MONGO_INITDB_ROOT_PASSWORD=webscout_password
-      - MONGO_INITDB_DATABASE=webscout
-
-    ports:
-      - "27017:27017"
-
-    volumes:
-      - mongodb-data:/data/db
-      - mongodb-config:/data/configdb
-
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
-
-  # -----------------------------------------------------------------------------
-  # Nginx reverse proxy (optional)
-  # Note: You'll need to provide your own nginx.conf file
-  # -----------------------------------------------------------------------------
-  nginx:
-    image: nginx:alpine
-    container_name: webscout-nginx
-    restart: unless-stopped
-    profiles:
-      - nginx
-      - production
-
-    ports:
-      - "80:80"
-      - "443:443"
-
-    volumes:
-      # Mount your own nginx configuration file
-      # - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      # - ./ssl:/etc/nginx/ssl:ro
-      - webscout-logs:/var/log/nginx
-
-    depends_on:
-      - webscout-api
-
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # -----------------------------------------------------------------------------
-  # Monitoring with Prometheus (optional)
-  # Note: You'll need to provide your own prometheus.yml configuration file
-  # -----------------------------------------------------------------------------
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: webscout-prometheus
-    restart: unless-stopped
-    profiles:
-      - monitoring
-
-    ports:
-      - "9090:9090"
-
-    volumes:
-      # Mount your own prometheus configuration file
-      # - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
-
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
+  # mongodb:
+  #   image: mongo:7-jammy
+  #   container_name: webscout-mongodb-auth
+  #   restart: unless-stopped
+  #   
+  #   environment:
+  #     - MONGO_INITDB_ROOT_USERNAME=webscout
+  #     - MONGO_INITDB_ROOT_PASSWORD=webscout_password
+  #     - MONGO_INITDB_DATABASE=webscout
+  #   
+  #   ports:
+  #     - "27017:27017"
+  #   
+  #   volumes:
+  #     - mongodb-data:/data/db
+  #     - mongodb-config:/data/configdb
+  #   
+  #   healthcheck:
+  #     test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 10s
 
 # =============================================================================
 # Named volumes for data persistence
@@ -298,17 +139,15 @@ volumes:
     driver: local
   webscout-data:
     driver: local
-  mongodb-data:
-    driver: local
-  mongodb-config:
-    driver: local
-  prometheus-data:
-    driver: local
+  # mongodb-data:
+  #   driver: local
+  # mongodb-config:
+  #   driver: local
 
 # =============================================================================
-# Networks (optional, for advanced setups)
+# Networks
 # =============================================================================
 networks:
   default:
-    name: webscout-network
+    name: webscout-auth-network
     driver: bridge

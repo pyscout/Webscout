@@ -1,6 +1,6 @@
 # =============================================================================
 # Docker Compose Configuration for Webscout API Server - Auth Mode
-# Uses local build with AttributeError fix
+# Builds from local source code for development and testing
 # =============================================================================
 
 services:
@@ -10,13 +10,13 @@ services:
   webscout-api:
     build:
       context: .
-      dockerfile: Dockerfile.local
+      dockerfile: Dockerfile
       args:
         - WEBSCOUT_VERSION=latest
         - BUILD_DATE=${BUILD_DATE:-}
         - VCS_REF=${VCS_REF:-}
         - VERSION=${VERSION:-latest}
-    image: webscout-api:local
+    image: webscout-api:latest
     container_name: webscout-api-auth
     restart: unless-stopped
 
@@ -102,7 +102,7 @@ services:
     labels:
       - "webscout.mode=auth"
       - "webscout.description=Authentication enabled - production ready"
-      - "webscout.build=local"
+      - "webscout.build=source"
 
   # -----------------------------------------------------------------------------
   # MongoDB Database (optional - uncomment to enable)

@@ -197,6 +197,7 @@ class DeepInfra(OpenAICompatibleProvider):
     AVAILABLE_MODELS = [
         "moonshotai/Kimi-K2-Instruct",
         "deepseek-ai/DeepSeek-V3.1-Terminus",
+        "deepseek-ai/DeepSeek-V3.2-Exp",
         "Qwen/Qwen3-Next-80B-A3B-Instruct",
         "Qwen/Qwen3-Next-80B-A3B-Thinking",
         "moonshotai/Kimi-K2-Instruct-0905",
@@ -264,6 +265,7 @@ class DeepInfra(OpenAICompatibleProvider):
         "zai-org/GLM-4.5-Air",
         "zai-org/GLM-4.5",
         "zai-org/GLM-4.5V",
+        "zai-org/GLM-4.6",
         "openai/gpt-oss-120b",
         "openai/gpt-oss-20b",
         "allenai/olmOCR-7B-0725-FP8",

@@ -261,6 +261,7 @@ class GMI(OpenAICompatibleProvider):
         "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
         "zai-org/GLM-4.5-Air-FP8",
         "zai-org/GLM-4.5-FP8",
+        "zai-org/GLM-4.6"
     ]
 
     def __init__(self, browser: str = "chrome", api_key: str = None, **kwargs):

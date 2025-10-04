@@ -2,6 +2,8 @@ from curl_cffi import CurlError
 from curl_cffi.requests import Session
 from typing import Any, Dict, Optional, Generator, List, Union
 import uuid
+import time
+import urllib.parse
 from webscout.AIutel import Optimizers
 from webscout.AIutel import Conversation
 from webscout.AIutel import AwesomePrompts, sanitize_stream # Import sanitize_stream
@@ -22,6 +24,7 @@ class ChatGLM(Provider):
         "glm-4-32B": "main_chat",
         "glm-4.5-Air": "0727-106B-API",
         "glm-4.5": "0727-360B-API",
+        "glm-4.6": "GLM-4-6-API-V1",
         # Add more nicknames as needed
     }
     # Reverse mapping: API format to nickname
@@ -98,12 +101,69 @@ class ChatGLM(Provider):
             self.api_key = response.json().get("token")
         return self.api_key
 
+    def _get_user_id(self):
+        """Get user_id from the auth response"""
+        if not hasattr(self, 'user_id') or not self.user_id:
+            response = self.session.get(f"{self.url}/api/v1/auths/")
+            data = response.json()
+            self.user_id = data.get("id", str(uuid.uuid4()))
+        return self.user_id
+
     def _get_cookie(self):
         """Get authentication cookie from the site"""
         if not hasattr(self, 'cookie') or not self.cookie:
             response = self.session.get(f"{self.url}/")
             self.cookie = response.headers.get('Set-Cookie', '')
         return self.cookie
+
+    def _build_api_url(self, chat_id: str = "local"):
+        """Build the API URL with all required query parameters"""
+        api_key = self._get_api_key()
+        user_id = self._get_user_id()
+        timestamp = str(int(time.time() * 1000))
+        request_id = str(uuid.uuid4())
+        user_agent = self.session.headers.get('User-Agent', 'Mozilla/5.0')
+        
+        params = {
+            'timestamp': timestamp,
+            'requestId': request_id,
+            'user_id': user_id,
+            'version': '0.0.1',
+            'platform': 'web',
+            'token': api_key,
+            'user_agent': user_agent,
+            'language': 'en-US',
+            'languages': 'en-US,en',
+            'timezone': 'UTC',
+            'cookie_enabled': 'true',
+            'screen_width': '1920',
+            'screen_height': '1080',
+            'screen_resolution': '1920x1080',
+            'viewport_height': '1080',
+            'viewport_width': '1920',
+            'viewport_size': '1920x1080',
+            'color_depth': '24',
+            'pixel_ratio': '1',
+            'current_url': f'https://chat.z.ai/c/{chat_id}',
+            'pathname': f'/c/{chat_id}',
+            'search': '',
+            'hash': '',
+            'host': 'chat.z.ai',
+            'hostname': 'chat.z.ai',
+            'protocol': 'https:',
+            'referrer': '',
+            'title': 'Z.ai Chat - Free AI powered by GLM-4.6',
+            'timezone_offset': '0',
+            'is_mobile': 'false',
+            'is_touch': 'false',
+            'max_touch_points': '0',
+            'browser_name': 'Chrome',
+            'os_name': 'Windows',
+            'signature_timestamp': timestamp
+        }
+        
+        query_string = urllib.parse.urlencode(params)
+        return f"{self.api_endpoint}?{query_string}"
 
 
     # _zai_extractor removed; use extract_regexes in sanitize_stream
@@ -139,6 +199,7 @@ class ChatGLM(Provider):
                     f"Optimizer is not one of {self.__available_optimizers}"
                 )
         api_key = self._get_api_key()
+        chat_id = str(uuid.uuid4())
         payload = {
             "stream": True,
             "model": self.model,  # Already resolved to API format
@@ -146,10 +207,25 @@ class ChatGLM(Provider):
                 {"role": "user", "content": conversation_prompt}
             ],
             "params": {},
-            "features": {"image_generation": False, "web_search": False, "auto_web_search": False, "preview_mode": True, "flags": [], "features": [{"type": "mcp", "server": "vibe-coding", "status": "hidden"}, {"type": "mcp", "server": "ppt-maker", "status": "hidden"}, {"type": "mcp", "server": "image-search", "status": "hidden"}], "enable_thinking": True},
+            "features": {
+                "image_generation": False,
+                "web_search": False,
+                "auto_web_search": False,
+                "preview_mode": True,
+                "flags": [],
+                "features": [
+                    {"type": "mcp", "server": "vibe-coding", "status": "hidden"},
+                    {"type": "mcp", "server": "ppt-maker", "status": "hidden"},
+                    {"type": "mcp", "server": "image-search", "status": "hidden"},
+                    {"type": "mcp", "server": "deep-research", "status": "hidden"},
+                    {"type": "tool_selector", "server": "tool_selector", "status": "hidden"},
+                    {"type": "mcp", "server": "advanced-search", "status": "hidden"}
+                ],
+                "enable_thinking": True
+            },
             "actions": [],
             "tags": [],
-            "chat_id": "local",
+            "chat_id": chat_id,
             "id": str(uuid.uuid4())
         }
 
@@ -157,15 +233,29 @@ class ChatGLM(Provider):
             streaming_text = ""
             try:
                 cookie = self._get_cookie()
+                api_url = self._build_api_url(chat_id)
                 response = self.session.post(
-                    self.api_endpoint,
+                    api_url,
                     json=payload,
                     stream=True,
                     timeout=self.timeout,
                     impersonate="chrome120",
                     headers={
                         "Authorization": f"Bearer {api_key}",
-                        "x-fe-version": "prod-fe-1.0.70",
+                        "x-fe-version": "prod-fe-1.0.95",
+                        "accept": "*/*",
+                        "accept-language": "en-US",
+                        "content-type": "application/json",
+                        "dnt": "1",
+                        "origin": self.url,
+                        "referer": f"{self.url}/c/{chat_id}",
+                        "sec-ch-ua": '"Chromium";v="140", "Not=A?Brand";v="24", "Microsoft Edge";v="140"',
+                        "sec-ch-ua-mobile": "?0",
+                        "sec-ch-ua-platform": '"Windows"',
+                        "sec-fetch-dest": "empty",
+                        "sec-fetch-mode": "cors",
+                        "sec-fetch-site": "same-origin",
+                        "sec-gpc": "1",
                     }
                 )
                 response.raise_for_status()
@@ -222,8 +312,11 @@ class ChatGLM(Provider):
                         yield content
                         streaming_text += content
                         last_content = content
+                # Close <think> tag if still open at end
+                if in_think:
+                    yield "\n</think>\n\n"
                 if not raw:
-                    self.last_response = {"text": content}
+                    self.last_response = {"text": streaming_text}
                     self.conversation.update_chat_history(prompt, streaming_text)
             except CurlError as e:
                 raise exceptions.APIConnectionError(f"Request failed (CurlError): {e}") from e
@@ -296,7 +389,7 @@ class ChatGLM(Provider):
 
 if __name__ == "__main__":
     from rich import print
-    ai = ChatGLM(model="glm-4-32B")
-    response = ai.chat("hi", stream=True, raw=False)
+    ai = ChatGLM(model="glm-4.6")
+    response = ai.chat("hi", stream=True, raw=True)
     for chunk in response:
         print(chunk, end="", flush=True)

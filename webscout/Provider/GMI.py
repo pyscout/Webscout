@@ -16,7 +16,7 @@ class GMI(Provider):
     """
     A class to interact with the GMI Cloud Qwen API.
     """
-    required_auth = False  # Assuming no auth required based on provided request
+    required_auth = False
 
     AVAILABLE_MODELS = [
         "Qwen/Qwen3-Next-80B-A3B-Instruct",
@@ -29,6 +29,7 @@ class GMI(Provider):
         "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
         "zai-org/GLM-4.5-Air-FP8",
         "zai-org/GLM-4.5-FP8",
+        "zai-org/GLM-4.6"
     ]
 
     def __init__(

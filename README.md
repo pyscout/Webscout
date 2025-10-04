@@ -2,7 +2,7 @@
   <a href="https://github.com/OEvortex/Webscout">
     <img src="https://img.shields.io/badge/WebScout-Ultimate%20Toolkit-blue?style=for-the-badge&logo=python&logoColor=white" alt="WebScout Logo">
   </a>
-
+ 
   <h1>Webscout</h1>
 
   <p><strong>Your All-in-One Python Toolkit for Web Search, AI Interaction, Digital Utilities, and More</strong></p>

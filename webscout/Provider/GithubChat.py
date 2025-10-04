@@ -2,10 +2,7 @@ from curl_cffi import CurlError
 from curl_cffi.requests import Session
 import json
 import time
-from typing import Any, Dict, List, Optional, Union, Generator
-
-from flask import request
-
+from typing import Any, Dict, Optional, Union, Generator
 from webscout.AIutel import Conversation
 from webscout.AIutel import Optimizers
 from webscout.AIutel import AwesomePrompts, sanitize_stream # Import sanitize_stream

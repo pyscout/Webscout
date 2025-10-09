@@ -35,6 +35,9 @@ class Toolbaz(Provider):
         "o3-mini",
         "gpt-4o-latest",
 
+        "grok-4-fast",
+        
+        "toolbaz-v4.5-fast",
         "toolbaz_v4",
         "toolbaz_v3.5_pro",
 

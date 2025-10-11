@@ -196,13 +196,14 @@ class Chat(BaseChat):
 class DeepInfra(OpenAICompatibleProvider):
     AVAILABLE_MODELS = [
         "moonshotai/Kimi-K2-Instruct",
-        "deepseek-ai/DeepSeek-V3.1-Terminus",
-        "deepseek-ai/DeepSeek-V3.2-Exp",
         "Qwen/Qwen3-Next-80B-A3B-Instruct",
         "Qwen/Qwen3-Next-80B-A3B-Thinking",
         "moonshotai/Kimi-K2-Instruct-0905",
+        "Qwen/Qwen3-Coder-30B-A3B-Instruct",
         "deepseek-ai/DeepSeek-R1-0528-Turbo",
         "Qwen/Qwen3-235B-A22B-Thinking-2507",
+        "deepseek-ai/DeepSeek-V3.1-Terminus",
+        "deepseek-ai/DeepSeek-V3.2-Exp",
         "Qwen/Qwen3-Coder-480B-A35B-Instruct",
         "Qwen/Qwen3-Coder-480B-A35B-Instruct-Turbo",
         "Qwen/Qwen3-235B-A22B-Instruct-2507",

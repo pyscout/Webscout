@@ -4,7 +4,6 @@ from .webscout_search import WEBS
 from .webscout_search_async import AsyncWEBS
 from .version import __version__
 from .DWEBS import *
-from .tempid import *
 from .Provider import *
 from .Provider.TTI import *
 from .Provider.TTS import *

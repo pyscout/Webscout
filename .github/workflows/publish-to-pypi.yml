@@ -1,0 +1,143 @@
+name: Publish to PyPI
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/**'
+      - '!.github/workflows/publish-to-pypi.yml'
+  workflow_dispatch:  # Allows manual trigger
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      should_publish: ${{ steps.version_check.outputs.should_publish }}
+      new_version: ${{ steps.version_check.outputs.new_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check if version needs update
+        id: version_check
+        run: |
+          # Get current version from version.py
+          CURRENT_VERSION=$(grep -oP '__version__ = "\K[^"]+' webscout/version.py)
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Generate date-based version (YYYY.MM.DD format)
+          DATE_VERSION=$(date +'%Y.%-m.%-d')
+          echo "Date-based version: $DATE_VERSION"
+          
+          # Check if we need a patch number (if version already exists today)
+          if [[ "$CURRENT_VERSION" == "$DATE_VERSION"* ]]; then
+            # Extract patch number if exists
+            if [[ "$CURRENT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.([0-9]+)$ ]]; then
+              PATCH=${BASH_REMATCH[1]}
+              NEW_PATCH=$((PATCH + 1))
+              NEW_VERSION="${DATE_VERSION}.${NEW_PATCH}"
+            elif [[ "$CURRENT_VERSION" == "$DATE_VERSION" ]]; then
+              NEW_VERSION="${DATE_VERSION}.1"
+            else
+              NEW_VERSION="$DATE_VERSION"
+            fi
+          else
+            NEW_VERSION="$DATE_VERSION"
+          fi
+          
+          echo "New version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          
+          # Check if version changed
+          if [ "$CURRENT_VERSION" != "$NEW_VERSION" ]; then
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+            echo "Version will be updated and published"
+          else
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+            echo "Version unchanged, skipping publish"
+          fi
+
+  publish:
+    needs: check-version
+    if: needs.check-version.outputs.should_publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine setuptools wheel
+
+      - name: Update version
+        run: |
+          NEW_VERSION="${{ needs.check-version.outputs.new_version }}"
+          echo "Updating version to $NEW_VERSION"
+          sed -i "s/__version__ = \".*\"/__version__ = \"$NEW_VERSION\"/" webscout/version.py
+          cat webscout/version.py
+
+      - name: Build package
+        run: |
+          python -m build
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          python -m twine upload dist/* --verbose
+
+      - name: Commit version update
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add webscout/version.py
+          git commit -m "🔖 Bump version to ${{ needs.check-version.outputs.new_version }}" || echo "No changes to commit"
+          git push || echo "No changes to push"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.check-version.outputs.new_version }}
+          name: Release v${{ needs.check-version.outputs.new_version }}
+          body: |
+            🚀 Auto-release for version ${{ needs.check-version.outputs.new_version }}
+            
+            ## Changes
+            This release includes the latest changes pushed to the main branch.
+            
+            ## Installation
+            ```bash
+            pip install --upgrade webscout
+            ```
+            
+            📦 Published to PyPI: https://pypi.org/project/webscout/
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notification
+        run: |
+          echo "✅ Successfully published webscout version ${{ needs.check-version.outputs.new_version }} to PyPI!"

@@ -42,9 +42,8 @@ from .request_processing import (
 )
 from .auth_system import get_auth_components
 from .simple_logger import request_logger
-from webscout.DWEBS import GoogleSearch
-from webscout.yep_search import YepSearch
-from webscout.webscout_search import WEBS
+from ..search import DuckDuckGoSearch, YepSearch
+from ..DWEBS import GoogleSearch
 from webscout.Bing_search import BingSearch
 
 # Setup logger

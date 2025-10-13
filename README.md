@@ -398,7 +398,7 @@ results = search("Python programming", num_results=5)
 
 <hr/>
 
-## 🦆 DuckDuckGo Search with WEBS and AsyncWEBS
+## 🦆 DuckDuckGo Search with WEBS
 
 Webscout provides powerful interfaces to DuckDuckGo's search capabilities through the `WEBS` and `AsyncWEBS` classes.
 
@@ -507,8 +507,7 @@ with WEBS() as webs:
 <p>
 
 ```python
-from webscout import WEBS
-import datetime
+from webscout.search import DuckDuckGoSearch
 
 def fetch_formatted_news(keywords, timelimit='d', max_results=20):
     """Fetch and format news articles"""

@@ -1,9 +1,7 @@
 # webscout/__init__.py
 
-from .webscout_search import WEBS
-from .webscout_search_async import AsyncWEBS
+from .search import DuckDuckGoSearch, YepSearch
 from .version import __version__
-from .DWEBS import *
 from .Provider import *
 from .Provider.TTI import *
 from .Provider.TTS import *
@@ -15,7 +13,6 @@ from .swiftcli import *
 from .litagent import LitAgent
 from .scout import *
 from .zeroart import *
-from .yep_search import *
 from .AIutel import *
 
 useragent = LitAgent()

@@ -6,7 +6,7 @@ from webscout.AIutel import Conversation
 from webscout.AIutel import AwesomePrompts
 from webscout.AIbase import  Provider
 from webscout import exceptions
-from webscout import WEBS
+from ..search import DuckDuckGoSearch
 from webscout.litagent import LitAgent
 
 class AndiSearch(Provider):

@@ -1,6 +1,6 @@
 import sys
 from .swiftcli import CLI, option
-from .webscout_search import WEBS  # Import the WEBS class from webscout_search
+from .webscout_search import DuckDuckGoSearch  # Import the WEBS class from webscout_search
 from .DWEBS import GoogleSearch  # Import GoogleSearch from DWEBS
 from .yep_search import YepSearch  # Import YepSearch from yep_search
 from .version import __version__

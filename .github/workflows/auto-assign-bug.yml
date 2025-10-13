@@ -13,47 +13,24 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.label.name == 'bug'
     steps:
-      - name: Assign Copilot to bug report
+      - name: Add bug report comment
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const issue = context.payload.issue;
-            const assignee = 'copilot';
-            
-            // Check if the issue already has assignees
-            if (issue.assignees && issue.assignees.length > 0) {
-              console.log('Issue already has assignees, skipping auto-assignment');
-              return;
-            }
             
             try {
-              // Try to assign the copilot
-              await github.rest.issues.addAssignees({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                assignees: [assignee]
-              });
-              
-              console.log(`Successfully assigned ${assignee} to issue #${issue.number}`);
-              
-              // Add a comment to notify about the assignment
+              // Add a comment to notify about the bug label
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number,
-                body: `🐛 This bug report has been automatically assigned to @${assignee} for review and resolution.`
+                body: `🐛 This issue has been labeled as a bug. The maintainers will review and address it as soon as possible.\n\nThank you for reporting this issue!`
               });
+              
+              console.log(`Successfully added comment to issue #${issue.number}`);
               
             } catch (error) {
-              console.log(`Could not assign ${assignee}: ${error.message}`);
-              
-              // Fallback: Add a comment mentioning copilot instead
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                body: `🐛 This bug report has been labeled as a bug. @${assignee} please review this issue when possible.`
-              });
+              console.log(`Could not add comment: ${error.message}`);
             }

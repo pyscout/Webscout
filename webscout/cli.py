@@ -1,9 +1,11 @@
 import sys
 from .swiftcli import CLI, option
-from .webscout_search import DuckDuckGoSearch  # Import the WEBS class from webscout_search
+from .search import DuckDuckGoSearch, YepSearch  # Import search classes
 from .DWEBS import GoogleSearch  # Import GoogleSearch from DWEBS
-from .yep_search import YepSearch  # Import YepSearch from yep_search
 from .version import __version__
+
+# Alias for backward compatibility
+WEBS = DuckDuckGoSearch
 
 
 def _print_data(data):

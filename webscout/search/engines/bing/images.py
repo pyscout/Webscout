@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Dict, List
 from urllib.parse import urlencode
-from bs4 import BeautifulSoup
 from time import sleep
 
 from .base import BingBase
+from webscout.scout import Scout
 
 
 class BingImagesSearch(BingBase):
@@ -59,7 +59,7 @@ class BingImagesSearch(BingBase):
             except Exception as e:
                 raise Exception(f"Failed to fetch images: {str(e)}")
 
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = Scout(html)
             img_tags = soup.select('a.iusc img')
 
             for img in img_tags:

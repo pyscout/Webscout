@@ -81,8 +81,8 @@ class Images(BaseImages):
                 time.sleep(3)
                 try:
                     poll_resp = session.get(polling_url, headers=headers, timeout=timeout)
-                    from bs4 import BeautifulSoup
-                    soup = BeautifulSoup(poll_resp.text, "html.parser")
+                    from webscout.scout import Scout
+                    soup = Scout(poll_resp.text)
                     imgs = [img["src"].split("?")[0] for img in soup.select(".img_cont .mimg") if img.get("src")]
                     if imgs:
                         img_url = imgs[0]

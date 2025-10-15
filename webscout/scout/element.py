@@ -267,7 +267,14 @@ class Tag:
     def select(self, selector: str) -> List['Tag']:
         """
         Select elements using CSS selector.
-        Enhanced to support more complex selectors.
+        Enhanced to support more complex selectors including:
+        - Tag selectors: 'p', 'div'
+        - Class selectors: '.class', 'p.class'
+        - ID selectors: '#id', 'div#id'
+        - Attribute selectors: '[attr]', '[attr=value]'
+        - Descendant selectors: 'div p'
+        - Child selectors: 'div > p'
+        - Multiple classes: '.class1.class2'
 
         Args:
             selector (str): CSS selector string
@@ -275,54 +282,248 @@ class Tag:
         Returns:
             List[Tag]: List of matching elements
         """
-        # More advanced CSS selector parsing
-        # This is a simplified implementation and might need more robust parsing
-        parts = re.split(r'\s+', selector.strip())
         results = []
-
-        def _match_selector(tag, selector_part):
-            # Support more complex selectors
-            if selector_part.startswith('.'):
-                # Class selector
-                return selector_part[1:] in tag.get('class', [])
-            elif selector_part.startswith('#'):
-                # ID selector
-                return tag.get('id') == selector_part[1:]
-            elif '[' in selector_part and ']' in selector_part:
-                # Attribute selector
-                attr_match = re.match(r'(\w+)\[([^=]+)(?:=(.+))?\]', selector_part)
-                if attr_match:
-                    tag_name, attr, value = attr_match.groups()
-                    if tag_name and tag.name != tag_name:
-                        return False
-                    if value:
-                        return tag.get(attr) == value.strip("'\"")
-                    return attr in tag.attrs
-            else:
-                # Tag selector
-                return tag.name == selector_part
-
-        def _recursive_select(element, selector_parts):
-            if not selector_parts:
-                results.append(element)
-                return
-
-            current_selector = selector_parts[0]
-            remaining_selectors = selector_parts[1:]
-
-            if _match_selector(element, current_selector):
-                if not remaining_selectors:
-                    results.append(element)
+        
+        def _parse_simple_selector(simple_sel: str) -> dict:
+            """Parse a simple selector like 'p.class#id[attr=value]' into components."""
+            components = {
+                'tag': None,
+                'id': None,
+                'classes': [],
+                'attrs': {}
+            }
+            
+            # Extract tag name (at the start)
+            tag_match = re.match(r'^([a-zA-Z][\w-]*)', simple_sel)
+            if tag_match:
+                components['tag'] = tag_match.group(1)
+                simple_sel = simple_sel[len(tag_match.group(1)):]
+            
+            # Extract ID
+            id_matches = re.findall(r'#([\w-]+)', simple_sel)
+            if id_matches:
+                components['id'] = id_matches[0]
+            
+            # Extract classes
+            class_matches = re.findall(r'\.([\w-]+)', simple_sel)
+            components['classes'] = class_matches
+            
+            # Extract attributes
+            attr_matches = re.findall(r'\[([^\]]+)\]', simple_sel)
+            for attr_expr in attr_matches:
+                if '=' in attr_expr:
+                    attr_name, attr_value = attr_expr.split('=', 1)
+                    components['attrs'][attr_name.strip()] = attr_value.strip('\'"')
                 else:
-                    for child in element.contents:
-                        if isinstance(child, Tag):
-                            _recursive_select(child, remaining_selectors)
-
-        for child in self.contents:
-            if isinstance(child, Tag):
-                _recursive_select(child, parts)
-
+                    components['attrs'][attr_expr.strip()] = None
+            
+            return components
+        
+        def _match_simple_selector(tag: 'Tag', components: dict) -> bool:
+            """Check if a tag matches the parsed selector components."""
+            # Check tag name
+            if components['tag'] and tag.name != components['tag']:
+                return False
+            
+            # Check ID
+            if components['id'] and tag.get('id') != components['id']:
+                return False
+            
+            # Check classes
+            tag_classes = tag.get('class', '')
+            if isinstance(tag_classes, str):
+                tag_classes = tag_classes.split()
+            elif not isinstance(tag_classes, list):
+                tag_classes = [str(tag_classes)] if tag_classes else []
+            
+            for cls in components['classes']:
+                if cls not in tag_classes:
+                    return False
+            
+            # Check attributes
+            for attr_name, attr_value in components['attrs'].items():
+                if attr_value is None:
+                    # Just check attribute exists
+                    if attr_name not in tag.attrs:
+                        return False
+                else:
+                    # Check attribute value
+                    if tag.get(attr_name) != attr_value:
+                        return False
+            
+            return True
+        
+        def _find_all_matching(element: 'Tag', components: dict) -> List['Tag']:
+            """Recursively find all elements matching the selector components."""
+            matches = []
+            
+            # Check current element
+            if _match_simple_selector(element, components):
+                matches.append(element)
+            
+            # Check children recursively
+            for child in element.contents:
+                if isinstance(child, Tag):
+                    matches.extend(_find_all_matching(child, components))
+            
+            return matches
+        
+        # Handle combinators (descendant ' ' and child '>')
+        if ' > ' in selector:
+            # Child combinator
+            parts = [p.strip() for p in selector.split(' > ')]
+            return self._select_with_child_combinator(parts)
+        elif ' ' in selector.strip():
+            # Descendant combinator
+            parts = [p.strip() for p in selector.split()]
+            return self._select_with_descendant_combinator(parts)
+        else:
+            # Simple selector
+            components = _parse_simple_selector(selector)
+            return _find_all_matching(self, components)
+    
+    def _select_with_descendant_combinator(self, parts: List[str]) -> List['Tag']:
+        """Handle descendant combinator (space)."""
+        if not parts:
+            return []
+        
+        if len(parts) == 1:
+            components = self._parse_selector_components(parts[0])
+            return self._find_all_matching_in_tree(self, components)
+        
+        # Find elements matching the first part
+        first_components = self._parse_selector_components(parts[0])
+        first_matches = self._find_all_matching_in_tree(self, first_components)
+        
+        # For each match, find descendants matching remaining parts
+        results = []
+        remaining_selector = ' '.join(parts[1:])
+        for match in first_matches:
+            descendants = match.select(remaining_selector)
+            results.extend(descendants)
+        
         return results
+    
+    def _select_with_child_combinator(self, parts: List[str]) -> List['Tag']:
+        """Handle child combinator (>)."""
+        if not parts:
+            return []
+        
+        if len(parts) == 1:
+            components = self._parse_selector_components(parts[0])
+            return self._find_all_matching_in_tree(self, components)
+        
+        # Find elements matching the first part
+        first_components = self._parse_selector_components(parts[0])
+        first_matches = self._find_all_matching_in_tree(self, first_components)
+        
+        # For each match, find direct children matching the next part
+        if len(parts) == 2:
+            # Last part, just check direct children
+            next_components = self._parse_selector_components(parts[1])
+            results = []
+            for match in first_matches:
+                for child in match.contents:
+                    if isinstance(child, Tag) and self._match_selector_components(child, next_components):
+                        results.append(child)
+            return results
+        else:
+            # More parts, need to continue recursively
+            results = []
+            next_components = self._parse_selector_components(parts[1])
+            remaining_parts = parts[2:]
+            for match in first_matches:
+                for child in match.contents:
+                    if isinstance(child, Tag) and self._match_selector_components(child, next_components):
+                        # Continue with remaining parts
+                        remaining_selector = ' > '.join(remaining_parts)
+                        descendants = child.select(remaining_selector)
+                        results.extend(descendants)
+            return results
+    
+    def _parse_selector_components(self, simple_sel: str) -> dict:
+        """Parse a simple selector like 'p.class#id[attr=value]' into components."""
+        components = {
+            'tag': None,
+            'id': None,
+            'classes': [],
+            'attrs': {}
+        }
+        
+        # Extract tag name (at the start)
+        tag_match = re.match(r'^([a-zA-Z][\w-]*)', simple_sel)
+        if tag_match:
+            components['tag'] = tag_match.group(1)
+            simple_sel = simple_sel[len(tag_match.group(1)):]
+        
+        # Extract ID
+        id_matches = re.findall(r'#([\w-]+)', simple_sel)
+        if id_matches:
+            components['id'] = id_matches[0]
+        
+        # Extract classes
+        class_matches = re.findall(r'\.([\w-]+)', simple_sel)
+        components['classes'] = class_matches
+        
+        # Extract attributes
+        attr_matches = re.findall(r'\[([^\]]+)\]', simple_sel)
+        for attr_expr in attr_matches:
+            if '=' in attr_expr:
+                attr_name, attr_value = attr_expr.split('=', 1)
+                components['attrs'][attr_name.strip()] = attr_value.strip('\'"')
+            else:
+                components['attrs'][attr_expr.strip()] = None
+        
+        return components
+    
+    def _match_selector_components(self, tag: 'Tag', components: dict) -> bool:
+        """Check if a tag matches the parsed selector components."""
+        # Check tag name
+        if components['tag'] and tag.name != components['tag']:
+            return False
+        
+        # Check ID
+        if components['id'] and tag.get('id') != components['id']:
+            return False
+        
+        # Check classes
+        tag_classes = tag.get('class', '')
+        if isinstance(tag_classes, str):
+            tag_classes = tag_classes.split()
+        elif not isinstance(tag_classes, list):
+            tag_classes = [str(tag_classes)] if tag_classes else []
+        
+        for cls in components['classes']:
+            if cls not in tag_classes:
+                return False
+        
+        # Check attributes
+        for attr_name, attr_value in components['attrs'].items():
+            if attr_value is None:
+                # Just check attribute exists
+                if attr_name not in tag.attrs:
+                    return False
+            else:
+                # Check attribute value
+                if tag.get(attr_name) != attr_value:
+                    return False
+        
+        return True
+    
+    def _find_all_matching_in_tree(self, element: 'Tag', components: dict) -> List['Tag']:
+        """Recursively find all elements matching the selector components."""
+        matches = []
+        
+        # Check current element
+        if self._match_selector_components(element, components):
+            matches.append(element)
+        
+        # Check children recursively
+        for child in element.contents:
+            if isinstance(child, Tag):
+                matches.extend(self._find_all_matching_in_tree(child, components))
+        
+        return matches
 
     def select_one(self, selector: str) -> Optional['Tag']:
         """

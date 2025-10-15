@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Dict, List
 from urllib.parse import urlencode
-from bs4 import BeautifulSoup
 from time import sleep
 
 from .base import BingBase
+from webscout.scout import Scout
 
 
 class BingNewsSearch(BingBase):
@@ -58,7 +58,7 @@ class BingNewsSearch(BingBase):
             if not html:
                 break
 
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = Scout(html)
             news_items = soup.select('div.newsitem')
 
             for item in news_items:

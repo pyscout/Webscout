@@ -539,6 +539,82 @@ YepSearch()
 4. **Cache Results**: Cache search results when possible to reduce API calls
 5. **Use Appropriate Result Limits**: Start with smaller `max_results` values and increase as needed
 
+## Scout Integration
+
+Webscout's search engines now use **Scout**, a powerful, zero-dependency HTML parsing library, instead of BeautifulSoup4. Scout provides all the parsing capabilities you need with better performance and more features.
+
+### Why Scout?
+
+- **Zero Dependencies**: No need to install BeautifulSoup4 or lxml separately
+- **Full BS4 Compatibility**: Drop-in replacement for BeautifulSoup with the same API
+- **Enhanced Features**: Advanced CSS selectors, text analysis, web crawling, and more
+- **Better Performance**: Optimized parsing and traversal
+
+### Scout Features Used in Search
+
+The search engines leverage Scout's powerful CSS selector capabilities:
+
+```python
+from webscout.scout import Scout
+
+# Parse HTML response
+html = response.text
+soup = Scout(html)
+
+# CSS selectors (just like BeautifulSoup)
+results = soup.select('ol#b_results > li.b_algo')  # Child combinator
+title = result.select_one('h2 a')                   # Descendant selector
+paragraphs = result.select('p.description')         # Class selector
+
+# Extract data
+href = title.get('href')
+text = title.get_text(strip=True)
+```
+
+### Supported CSS Selectors
+
+Scout's CSS selector engine supports:
+
+- **Tag selectors**: `p`, `div`, `a`
+- **Class selectors**: `.class`, `p.class`, `.class1.class2`
+- **ID selectors**: `#id`, `div#id`
+- **Attribute selectors**: `[attr]`, `[attr="value"]`
+- **Descendant selectors**: `div p`, `div span a`
+- **Child selectors**: `div > p`, `ol > li.item`
+- **Combined selectors**: `p.class#id[attr]`
+
+### Additional Scout Methods
+
+Beyond CSS selectors, Scout provides many other useful methods:
+
+```python
+from webscout.scout import Scout
+
+soup = Scout(html)
+
+# Find methods (BeautifulSoup-compatible)
+soup.find('div', attrs={'class': 'content'})
+soup.find_all('p', limit=10)
+
+# Text extraction
+soup.get_text(separator='\n', strip=True)
+
+# Tree traversal
+tag.find_parent('div')
+tag.find_next_sibling('p')
+
+# Export to different formats
+soup.to_json(indent=2)
+soup.to_markdown()
+soup.prettify()
+```
+
+### Learn More About Scout
+
+For complete Scout documentation, see:
+- [Scout README](../webscout/scout/README.md)
+- [Scout API Reference](../webscout/scout/README.md#api-reference)
+
 ## Contributing
 
 To add support for new search engines:

@@ -1,6 +1,6 @@
 # webscout/__init__.py
 
-from .search import DuckDuckGoSearch, YepSearch
+from .search import DuckDuckGoSearch, YepSearch, BingSearch
 from .version import __version__
 from .Provider import *
 from .Provider.TTI import *

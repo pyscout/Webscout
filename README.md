@@ -29,9 +29,6 @@
 - [⚙️ Installation](#️-installation)
 - [🖥️ Command Line Interface](#️-command-line-interface)
 - [🔄 OpenAI-Compatible API Server](docs/openai-api-server.md)
-- [🔍 Search Engines](#-search-engines)
-- [🦆 DuckDuckGo Search](#-duckduckgo-search-with-webs-and-asyncwebs)
-- [💻 WEBS API Reference](#-webs-api-reference)
 - [🤖 AI Models and Voices](#-ai-models-and-voices)
 - [💬 AI Chat Providers](#-ai-chat-providers)
 - [👨‍💻 Advanced AI Interfaces](#-advanced-ai-interfaces)
@@ -72,7 +69,7 @@
 <summary><b>Search & AI</b></summary>
 <p>
 
-- **Comprehensive Search:** Leverage Google, DuckDuckGo, and Yep for diverse search results
+- **Comprehensive Search:** Access multiple search engines including DuckDuckGo, Yep, Bing, Brave, Yahoo, Yandex, Mojeek, and Wikipedia for diverse search results ([Search Documentation](docs/search.md))
 - **AI Powerhouse:** Access and interact with various AI models through three compatibility options:
   - **Native API:** Use Webscout's native interfaces for providers like OpenAI, Cohere, Gemini, and many more
   - **[OpenAI-Compatible Providers](webscout/Provider/OPENAI/README.md):** Seamlessly integrate with various AI providers using standardized OpenAI-compatible interfaces
@@ -246,32 +243,7 @@ python -m webscout-server
 <summary><b>🔍 Web Search Commands</b></summary>
 <p>
 
-| Command                           | Description                 | Example                                   |
-| --------------------------------- | --------------------------- | ----------------------------------------- |
-| `webscout text -k "query"`        | Perform a text search       | `webscout text -k "python programming"`   |
-| `webscout answers -k "query"`     | Get instant answers         | `webscout answers -k "what is AI"`        |
-| `webscout images -k "query"`      | Search for images           | `webscout images -k "nature photography"` |
-| `webscout videos -k "query"`      | Search for videos           | `webscout videos -k "python tutorials"`   |
-| `webscout news -k "query"`        | Search for news articles    | `webscout news -k "technology trends"`    |
-| `webscout maps -k "query"`        | Perform a maps search       | `webscout maps -k "restaurants near me"`  |
-| `webscout translate -k "text"`    | Translate text              | `webscout translate -k "hello world"`     |
-| `webscout suggestions -k "query"` | Get search suggestions      | `webscout suggestions -k "how to"`        |
-| `webscout weather -l "location"`  | Get weather information     | `webscout weather -l "New York"`          |
-| `webscout version`                | Display the current version | `webscout version`                        |
-
-**Google Search Commands:**
-| Command | Description | Example |
-|---------|-------------|---------|
-| `webscout google_text -k "query"` | Google text search | `webscout google_text -k "machine learning"` |
-| `webscout google_news -k "query"` | Google news search | `webscout google_news -k "AI breakthrough"` |
-| `webscout google_suggestions -q "query"` | Google suggestions | `webscout google_suggestions -q "python"` |
-
-**Yep Search Commands:**
-| Command | Description | Example |
-|---------|-------------|---------|
-| `webscout yep_text -k "query"` | Yep text search | `webscout yep_text -k "web development"` |
-| `webscout yep_images -k "query"` | Yep image search | `webscout yep_images -k "landscapes"` |
-| `webscout yep_suggestions -q "query"` | Yep suggestions | `webscout yep_suggestions -q "javascript"` |
+Webscout provides comprehensive CLI commands for all search engines. See the [Search Documentation](docs/search.md#command-line-interface) for detailed command reference.
 
 </p>
 </details>
@@ -317,254 +289,6 @@ For more information, visit the [Inferno GitHub repository](https://github.com/H
 > - GPU acceleration is recommended for better performance
 
 For detailed information about the OpenAI-compatible API server, including setup, configuration, and usage examples, see the [OpenAI API Server Documentation](docs/openai-api-server.md).
-
-<hr/>
-
-## 🔍 Search Engines
-
-Webscout provides multiple search engine interfaces for diverse search capabilities.
-
-### YepSearch - Yep.com Interface
-
-```python
-from webscout import YepSearch
-
-# Initialize YepSearch
-yep = YepSearch(
-    timeout=20,  # Optional: Set custom timeout
-    proxies=None,  # Optional: Use proxies
-    verify=True   # Optional: SSL verification
-)
-
-# Text Search
-text_results = yep.text(
-    keywords="artificial intelligence",
-    region="all",           # Optional: Region for results
-    safesearch="moderate",  # Optional: "on", "moderate", "off"
-    max_results=10          # Optional: Limit number of results
-)
-
-# Image Search
-image_results = yep.images(
-    keywords="nature photography",
-    region="all",
-    safesearch="moderate",
-    max_results=10
-)
-
-# Get search suggestions
-suggestions = yep.suggestions("hist")
-```
-
-### GoogleSearch - Google Interface
-
-```python
-from webscout import GoogleSearch
-
-# Initialize GoogleSearch
-google = GoogleSearch(
-    timeout=10,  # Optional: Set custom timeout
-    proxies=None,  # Optional: Use proxies
-    verify=True   # Optional: SSL verification
-)
-
-# Text Search
-text_results = google.text(
-    keywords="artificial intelligence",
-    region="us",           # Optional: Region for results
-    safesearch="moderate",  # Optional: "on", "moderate", "off"
-    max_results=10          # Optional: Limit number of results
-)
-for result in text_results:
-    print(f"Title: {result.title}")
-    print(f"URL: {result.url}")
-    print(f"Description: {result.description}")
-
-# News Search
-news_results = google.news(
-    keywords="technology trends",
-    region="us",
-    safesearch="moderate",
-    max_results=5
-)
-
-# Get search suggestions
-suggestions = google.suggestions("how to")
-
-# Legacy usage is still supported
-from webscout import search
-results = search("Python programming", num_results=5)
-```
-
-<hr/>
-
-## 🦆 DuckDuckGo Search with WEBS
-
-Webscout provides powerful interfaces to DuckDuckGo's search capabilities through the `WEBS` and `AsyncWEBS` classes.
-
-<details open>
-<summary><b>Synchronous Usage with WEBS</b></summary>
-<p>
-
-```python
-from webscout import WEBS
-
-# Use as a context manager for proper resource management
-with WEBS() as webs:
-    # Simple text search
-    results = webs.text("python programming", max_results=5)
-    for result in results:
-        print(f"Title: {result['title']}\nURL: {result['url']}")
-```
-
-</p>
-</details>
-
-<details open>
-<summary><b>Asynchronous Usage with AsyncWEBS</b></summary>
-<p>
-
-```python
-import asyncio
-from webscout import AsyncWEBS
-
-async def search_multiple_terms(search_terms):
-    async with AsyncWEBS() as webs:
-        # Create tasks for each search term
-        tasks = [webs.text(term, max_results=5) for term in search_terms]
-        # Run all searches concurrently
-        results = await asyncio.gather(*tasks)
-        return results
-
-async def main():
-    terms = ["python", "javascript", "machine learning"]
-    all_results = await search_multiple_terms(terms)
-
-    # Process results
-    for i, term_results in enumerate(all_results):
-        print(f"Results for '{terms[i]}':\n")
-        for result in term_results:
-            print(f"- {result['title']}")
-        print("\n")
-
-# Run the async function
-asyncio.run(main())
-```
-
-</p>
-</details>
-
-> [!TIP]
-> Always use these classes with a context manager (`with` statement) to ensure proper resource management and cleanup.
-
-<hr/>
-
-## 💻 WEBS API Reference
-
-The WEBS class provides comprehensive access to DuckDuckGo's search capabilities through a clean, intuitive API.
-
-### Available Search Methods
-
-| Method          | Description         | Example                                      |
-| --------------- | ------------------- | -------------------------------------------- |
-| `text()`        | General web search  | `webs.text('python programming')`            |
-| `answers()`     | Instant answers     | `webs.answers('population of france')`       |
-| `images()`      | Image search        | `webs.images('nature photography')`          |
-| `videos()`      | Video search        | `webs.videos('documentary')`                 |
-| `news()`        | News articles       | `webs.news('technology')`                    |
-| `maps()`        | Location search     | `webs.maps('restaurants', place='new york')` |
-| `translate()`   | Text translation    | `webs.translate('hello', to='es')`           |
-| `suggestions()` | Search suggestions  | `webs.suggestions('how to')`                 |
-| `weather()`     | Weather information | `webs.weather('london')`                     |
-
-<details>
-<summary><b>Example: Text Search</b></summary>
-<p>
-
-```python
-from webscout import WEBS
-
-with WEBS() as webs:
-    results = webs.text(
-        'artificial intelligence',
-        region='wt-wt',        # Optional: Region for results
-        safesearch='off',      # Optional: 'on', 'moderate', 'off'
-        timelimit='y',         # Optional: Time limit ('d'=day, 'w'=week, 'm'=month, 'y'=year)
-        max_results=10         # Optional: Limit number of results
-    )
-
-    for result in results:
-        print(f"Title: {result['title']}")
-        print(f"URL: {result['url']}")
-        print(f"Description: {result['body']}\n")
-```
-
-</p>
-</details>
-
-<details>
-<summary><b>Example: News Search with Formatting</b></summary>
-<p>
-
-```python
-from webscout.search import DuckDuckGoSearch
-
-def fetch_formatted_news(keywords, timelimit='d', max_results=20):
-    """Fetch and format news articles"""
-    with WEBS() as webs:
-        # Get news results
-        news_results = webs.news(
-            keywords,
-            region="wt-wt",
-            safesearch="off",
-            timelimit=timelimit,  # 'd'=day, 'w'=week, 'm'=month
-            max_results=max_results
-        )
-
-        # Format the results
-        formatted_news = []
-        for i, item in enumerate(news_results, 1):
-            # Format the date
-            date = datetime.datetime.fromisoformat(item['date']).strftime('%B %d, %Y')
-
-            # Create formatted entry
-            entry = f"{i}. {item['title']}\n"
-            entry += f"   Published: {date}\n"
-            entry += f"   {item['body']}\n"
-            entry += f"   URL: {item['url']}\n"
-
-            formatted_news.append(entry)
-
-        return formatted_news
-
-# Example usage
-news = fetch_formatted_news('artificial intelligence', timelimit='w', max_results=5)
-print('\n'.join(news))
-```
-
-</p>
-</details>
-
-<details>
-<summary><b>Example: Weather Information</b></summary>
-<p>
-
-```python
-from webscout import WEBS
-
-with WEBS() as webs:
-    # Get weather for a location
-    weather = webs.weather("New York")
-
-    # Access weather data
-    if weather:
-        print(f"Location: {weather.get('location', 'Unknown')}")
-        print(f"Temperature: {weather.get('temperature', 'N/A')}")
-        print(f"Conditions: {weather.get('condition', 'N/A')}")
-```
-
-</p>
-</details>
 
 <hr/>
 
@@ -702,7 +426,7 @@ for media in response.get("media", []):
 <p>
 
 ```python
-from webscout import GROQ, WEBS
+from webscout import GROQ, DuckDuckGoSearch
 import json
 
 # Initialize GROQ client
@@ -720,7 +444,8 @@ def calculate(expression):
 def search(query):
     """Perform a web search"""
     try:
-        results = WEBS().text(query, max_results=3)
+        ddg = DuckDuckGoSearch()
+        results = ddg.text(query, max_results=3)
         return json.dumps({"results": results})
     except Exception as e:
         return json.dumps({"error": str(e)})

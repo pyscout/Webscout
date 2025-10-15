@@ -124,28 +124,8 @@ jobs:
             git push || echo "Failed to push changes - this may be due to branch protection"
           fi
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: v${{ needs.check-version.outputs.new_version }}
-          name: Release v${{ needs.check-version.outputs.new_version }}
-          body: |
-            🚀 Auto-release for version ${{ needs.check-version.outputs.new_version }}
-            
-            ## Changes
-            This release includes the latest changes pushed to the main branch.
-            
-            ## Installation
-            ```bash
-            pip install --upgrade webscout
-            ```
-            
-            📦 Published to PyPI: https://pypi.org/project/webscout/
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Notification
         run: |
           echo "✅ Successfully published webscout version ${{ needs.check-version.outputs.new_version }} to PyPI!"
+          echo "📝 A release with detailed changelog will be created automatically by the release workflow"
+

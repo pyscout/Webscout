@@ -43,7 +43,6 @@ from .request_processing import (
 from .auth_system import get_auth_components
 from .simple_logger import request_logger
 from ..search import DuckDuckGoSearch, YepSearch
-from ..DWEBS import GoogleSearch
 from webscout.Bing_search import BingSearch
 
 # Setup logger
@@ -514,33 +513,20 @@ class Api:
         @self.app.get(
             "/search",
             tags=["Web search"],
-            description="Unified web search endpoint supporting Google, Yep, DuckDuckGo, and Bing with text, news, images, and suggestions search types."
+            description="Unified web search endpoint supporting Yep, DuckDuckGo, and Bing with text, news, images, and suggestions search types."
         )
         async def websearch(
             q: str = Query(..., description="Search query"),
-            engine: str = Query("google", description="Search engine: google, yep, duckduckgo, bing"),
+            engine: str = Query("duckduckgo", description="Search engine: yep, duckduckgo, bing"),
             max_results: int = Query(10, description="Maximum number of results"),
             region: str = Query("all", description="Region code (optional)"),
             safesearch: str = Query("moderate", description="Safe search: on, moderate, off"),
             type: str = Query("text", description="Search type: text, news, images, suggestions"),
         ):
             """Unified web search endpoint."""
-            github_footer = "If you believe this is a bug, please pull an issue at https://github.com/OEvortex/Webscout."
+            github_footer = "If you believe this is a bug, please pull an issue at https://github.com/pyscout/Webscout."
             try:
-                if engine == "google":
-                    gs = GoogleSearch()
-                    if type == "text":
-                        results = gs.text(keywords=q, region=region, safesearch=safesearch, max_results=max_results)
-                        return {"engine": "google", "type": "text", "results": [r.__dict__ for r in results]}
-                    elif type == "news":
-                        results = gs.news(keywords=q, region=region, safesearch=safesearch, max_results=max_results)
-                        return {"engine": "google", "type": "news", "results": [r.__dict__ for r in results]}
-                    elif type == "suggestions":
-                        results = gs.suggestions(q, region=region)
-                        return {"engine": "google", "type": "suggestions", "results": results}
-                    else:
-                        return {"error": "Google only supports text, news, and suggestions in this API.", "footer": github_footer}
-                elif engine == "yep":
+                if engine == "yep":
                     ys = YepSearch()
                     if type == "text":
                         results = ys.text(keywords=q, region=region, safesearch=safesearch, max_results=max_results)
@@ -554,12 +540,12 @@ class Api:
                     else:
                         return {"error": "Yep only supports text, images, and suggestions in this API.", "footer": github_footer}
                 elif engine == "duckduckgo":
-                    ws = WEBS()
+                    ddg = DuckDuckGoSearch()
                     if type == "text":
-                        results = ws.text(keywords=q, region=region, safesearch=safesearch, max_results=max_results)
+                        results = ddg.text(keywords=q, region=region, safesearch=safesearch, max_results=max_results)
                         return {"engine": "duckduckgo", "type": "text", "results": results}
                     elif type == "suggestions":
-                        results = ws.suggestions(keywords=q, region=region)
+                        results = ddg.suggestions(keywords=q, region=region)
                         return {"engine": "duckduckgo", "type": "suggestions", "results": results}
                     else:
                         return {"error": "DuckDuckGo only supports text and suggestions in this API.", "footer": github_footer}
@@ -580,7 +566,7 @@ class Api:
                     else:
                         return {"error": "Bing only supports text, news, images, and suggestions in this API.", "footer": github_footer}
                 else:
-                    return {"error": "Unknown engine. Use one of: google, yep, duckduckgo, bing.", "footer": github_footer}
+                    return {"error": "Unknown engine. Use one of: yep, duckduckgo, bing.", "footer": github_footer}
             except Exception as e:
                 # Special handling for rate limit errors
                 msg = str(e)

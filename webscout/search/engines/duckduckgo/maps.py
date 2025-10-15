@@ -1,12 +1,25 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from math import sqrt
 
 from ....exceptions import WebscoutE
 from .base import DuckDuckGoBase
 
 
 class DuckDuckGoMaps(DuckDuckGoBase):
+    def _calculate_distance(self, lat_t: Decimal, lon_l: Decimal, lat_b: Decimal, lon_r: Decimal) -> float:
+        """Calculate the Euclidean distance between top-left and bottom-right corners of bounding box."""
+        # Convert to float for math operations
+        lat_t_f = float(lat_t)
+        lon_l_f = float(lon_l)
+        lat_b_f = float(lat_b)
+        lon_r_f = float(lon_r)
+        
+        # Calculate Euclidean distance
+        distance = sqrt((lat_t_f - lat_b_f) ** 2 + (lon_r_f - lon_l_f) ** 2)
+        return distance
+
     def run(self, *args, **kwargs) -> list[dict[str, str]]:
         keywords = args[0] if args else kwargs.get("keywords")
         place = args[1] if len(args) > 1 else kwargs.get("place")

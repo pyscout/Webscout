@@ -147,10 +147,57 @@ Scout provides powerful tools for navigating and manipulating HTML/XML documents
 - **Document Manipulation**: Modify, replace, or remove elements
 - **Dynamic Building**: Easily append or insert new nodes
 
-```python
-# CSS selector support
-elements = scout.select('div.content > p')
+#### CSS Selector Support
 
+Scout includes a comprehensive CSS selector engine that supports all common selector types:
+
+```python
+# Tag selectors
+paragraphs = scout.select('p')
+divs = scout.select('div')
+
+# Class selectors
+items = scout.select('.item')              # Single class
+cards = scout.select('div.card')           # Tag + class
+special = scout.select('.card.special')    # Multiple classes
+
+# ID selectors
+header = scout.select_one('#header')       # Single element by ID
+menu = scout.select('nav#main-menu')       # Tag + ID
+
+# Attribute selectors
+links = scout.select('a[href]')                    # Has attribute
+external = scout.select('a[rel="nofollow"]')       # Attribute value
+images = scout.select('img[alt]')                  # Has alt attribute
+
+# Descendant selectors (space)
+nested = scout.select('div p')                     # Any p inside div
+deep = scout.select('article section p')           # Deeply nested
+
+# Child selectors (>)
+direct = scout.select('ul > li')                   # Direct children only
+menu_items = scout.select('nav#menu > ul > li')    # Multiple levels
+
+# Combined selectors
+complex = scout.select('div.container > p.text[lang="en"]')
+links = scout.select('ol#results > li.item a[href]')
+
+# Get first match only
+first = scout.select_one('p.intro')
+```
+
+**Supported Selector Types:**
+- **Tag**: `p`, `div`, `a`
+- **Class**: `.class`, `div.class`, `.class1.class2`
+- **ID**: `#id`, `div#id`
+- **Attribute**: `[attr]`, `[attr="value"]`
+- **Descendant**: `div p`, `article section p`
+- **Child**: `div > p`, `ul > li`
+- **Combined**: `p.class#id[attr="value"]`
+
+#### Element Navigation
+
+```python
 # Advanced find with attribute matching
 results = scout.find_all('a', attrs={'class': 'external', 'rel': 'nofollow'})
 

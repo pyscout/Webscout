@@ -32,7 +32,7 @@ jobs:
         id: version_check
         run: |
           # Get current version from version.py
-          CURRENT_VERSION=$(grep -oP '__version__ = "\K[^"]+' webscout/version.py)
+          CURRENT_VERSION=$(grep -oP '__version__ = "\K[^"]*' webscout/version.py)
           echo "Current version: $CURRENT_VERSION"
           
           # Generate date-based version (YYYY.MM.DD format)

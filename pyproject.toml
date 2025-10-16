@@ -77,7 +77,7 @@ dependencies = [
 [project.scripts]
 WEBS = "webscout.cli:main"
 webscout = "webscout.cli:main"
-webscout-server = "webscout.auth.server:main"  # Instantly start the OpenAI-compatible API server
+webscout-server = "webscout.server.server:main"  # Instantly start the OpenAI-compatible API server
 
 [project.urls]
 Source = "https://github.com/OE-LUCIFER/Webscout"
@@ -95,10 +95,8 @@ api = [
     "pydantic",
     "python-multipart",
     "tiktoken",  # Added tiktoken for token counting support
-    "motor",  # MongoDB async driver for enhanced authentication
     "jinja2",  # Template engine for custom Swagger UI
-    "supabase",  # Supabase client for database operations
-    "websockets>=11.0",  # Ensure websockets.asyncio module is available for Supabase realtime
+    "websockets>=11.0",
     "starlette"
 ]
 

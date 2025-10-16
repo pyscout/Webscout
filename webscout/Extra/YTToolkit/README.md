@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="https://github.com/OEvortex/Webscout">
+  <a href="https://github.com/pyscout/Webscout">
     <img src="https://img.shields.io/badge/YTToolkit-YouTube%20Toolkit-red?style=for-the-badge&logo=youtube&logoColor=white" alt="YTToolkit Logo">
   </a>
   <h1>YTToolkit</h1>

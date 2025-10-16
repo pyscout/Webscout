@@ -12,7 +12,6 @@ from typing import Any
 from fastapi import FastAPI, Request, Body, Query
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from fastapi.security import APIKeyHeader
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.status import (
     HTTP_422_UNPROCESSABLE_ENTITY,
@@ -28,7 +27,6 @@ from .request_models import (
     ErrorResponse
 )
 from .schemas import (
-    APIKeyCreateRequest, APIKeyCreateResponse, APIKeyValidationResponse,
     HealthCheckResponse
 )
 from .exceptions import APIError
@@ -40,10 +38,9 @@ from .request_processing import (
     process_messages, prepare_provider_params,
     handle_streaming_response, handle_non_streaming_response
 )
-from .auth_system import get_auth_components
 from .simple_logger import request_logger
 from ..search import DuckDuckGoSearch, YepSearch
-from webscout.Bing_search import BingSearch
+from ..search import BingSearch
 
 # Setup logger
 logger = Logger(
@@ -59,29 +56,6 @@ class Api:
     
     def __init__(self, app: FastAPI) -> None:
         self.app = app
-        self.get_api_key = APIKeyHeader(name="authorization", auto_error=False)
-
-    def register_authorization(self):
-        """Register legacy authorization middleware."""
-        @self.app.middleware("http")
-        async def authorization(request: Request, call_next):
-            if AppConfig.api_key is not None:
-                auth_header = await self.get_api_key(request)
-                path = request.url.path
-                if path.startswith("/v1"):  # Only protect /v1 routes
-                    if auth_header is None:
-                        return JSONResponse(
-                            status_code=HTTP_401_UNAUTHORIZED,
-                            content={"error": {"message": "API key required", "type": "authentication_error"}}
-                        )
-                    if auth_header.startswith("Bearer "):
-                        auth_header = auth_header[7:]
-                    if not secrets.compare_digest(AppConfig.api_key, auth_header):
-                        return JSONResponse(
-                            status_code=HTTP_403_FORBIDDEN,
-                            content={"error": {"message": "Invalid API key", "type": "authentication_error"}}
-                        )
-            return await call_next(request)
 
     def register_validation_exception_handler(self):
         """Register comprehensive exception handlers."""
@@ -162,7 +136,6 @@ class Api:
         """Register all API routes."""
         self._register_model_routes()
         self._register_chat_routes()
-        self._register_auth_routes()
         self._register_websearch_routes()
         self._register_monitoring_routes()
 
@@ -407,105 +380,7 @@ class Api:
                     "internal_error"
                 )
 
-    def _register_auth_routes(self):
-        """Register authentication routes."""
-        # Only register auth endpoints if authentication is required
-        if not AppConfig.auth_required:
-            logger.info("Auth endpoints are disabled (no-auth mode)")
-            return
-        auth_components = get_auth_components()
-        api_key_manager = auth_components.get("api_key_manager")
 
-        @self.app.post(
-            "/v1/auth/generate-key",
-            response_model=APIKeyCreateResponse,
-            tags=["Authentication"],
-            description="Generate a new API key for a user."
-        )
-        async def generate_api_key(request: APIKeyCreateRequest = Body(...)):
-            """Generate a new API key."""
-            if not api_key_manager:
-                raise APIError("Authentication system not initialized", HTTP_500_INTERNAL_SERVER_ERROR)
-
-            try:
-                api_key, user = await api_key_manager.create_api_key(
-                    username=request.username,
-                    telegram_id=request.telegram_id,
-                    name=request.name,
-                    rate_limit=request.rate_limit or 10,
-                    expires_in_days=request.expires_in_days
-                )
-
-                return APIKeyCreateResponse(
-                    api_key=api_key.key,
-                    key_id=api_key.id,
-                    user_id=user.id,
-                    name=api_key.name,
-                    created_at=api_key.created_at,
-                    expires_at=api_key.expires_at,
-                    rate_limit=api_key.rate_limit
-                )
-            except Exception as e:
-                logger.error(f"Error generating API key: {e}")
-                raise APIError(f"Failed to generate API key: {str(e)}", HTTP_500_INTERNAL_SERVER_ERROR)
-
-        @self.app.get(
-            "/v1/auth/validate",
-            response_model=APIKeyValidationResponse,
-            tags=["Authentication"],
-            description="Validate an API key and return its status."
-        )
-        async def validate_api_key(request: Request):
-            """Validate an API key."""
-            if not api_key_manager:
-                raise APIError("Authentication system not initialized", HTTP_500_INTERNAL_SERVER_ERROR)
-
-            auth_header = request.headers.get("authorization")
-            if not auth_header:
-                return APIKeyValidationResponse(valid=False, error="No authorization header provided")
-
-            # Extract API key
-            api_key = auth_header
-            if auth_header.startswith("Bearer "):
-                api_key = auth_header[7:]
-
-            try:
-                is_valid, api_key_obj, error_msg = await api_key_manager.validate_api_key(api_key)
-
-                if is_valid and api_key_obj:
-                    return APIKeyValidationResponse(
-                        valid=True,
-                        user_id=api_key_obj.user_id,
-                        key_id=api_key_obj.id,
-                        rate_limit=api_key_obj.rate_limit,
-                        usage_count=api_key_obj.usage_count,
-                        last_used_at=api_key_obj.last_used_at
-                    )
-                else:
-                    return APIKeyValidationResponse(valid=False, error=error_msg)
-            except Exception as e:
-                logger.error(f"Error validating API key: {e}")
-                return APIKeyValidationResponse(valid=False, error="Internal validation error")
-
-        @self.app.get(
-            "/health",
-            response_model=HealthCheckResponse,
-            tags=["Health"],
-            description="Health check endpoint for the API and database."
-        )
-        async def health_check():
-            """Health check endpoint."""
-            db_status = "unknown"
-            db_manager = auth_components.get("db_manager")
-            if db_manager:
-                status_info = db_manager.get_status()
-                db_status = f"{status_info['type']} - {status_info['status']}"
-
-            return HealthCheckResponse(
-                status="healthy",
-                database=db_status,
-                timestamp=datetime.now(timezone.utc)
-            )
 
     def _register_websearch_routes(self):
         """Register web search endpoint."""
@@ -583,18 +458,15 @@ class Api:
                 }
 
     def _register_monitoring_routes(self):
-        """Register monitoring and analytics routes for no-auth mode."""
+        """Register monitoring and analytics routes."""
 
         @self.app.get(
             "/monitor/requests",
             tags=["Monitoring"],
-            description="Get recent API requests (no-auth mode only)"
+            description="Get recent API requests"
         )
         async def get_recent_requests(limit: int = Query(10, description="Number of recent requests to fetch")):
             """Get recent API requests for monitoring."""
-            if AppConfig.auth_required:
-                return {"error": "Monitoring is only available in no-auth mode"}
-            
             try:
                 return await request_logger.get_recent_requests(limit)
             except Exception as e:
@@ -603,13 +475,10 @@ class Api:
         @self.app.get(
             "/monitor/stats",
             tags=["Monitoring"], 
-            description="Get API usage statistics (no-auth mode only)"
+            description="Get API usage statistics"
         )
         async def get_api_stats():
             """Get API usage statistics."""
-            if AppConfig.auth_required:
-                return {"error": "Monitoring is only available in no-auth mode"}
-            
             try:
                 return await request_logger.get_stats()
             except Exception as e:
@@ -618,24 +487,13 @@ class Api:
         @self.app.get(
             "/monitor/health",
             tags=["Monitoring"],
-            description="Health check with database status"
+            description="Health check"
         )
         async def enhanced_health_check():
-            """Enhanced health check including database connectivity."""
+            """Enhanced health check."""
             try:
-                # Check database connectivity
-                db_status = "disconnected"
-                if request_logger.supabase_client:
-                    try:
-                        # Try a simple query to check connectivity
-                        result = request_logger.supabase_client.table("api_requests").select("id").limit(1).execute()
-                        db_status = "connected"
-                    except Exception as e:
-                        db_status = f"error: {str(e)[:100]}"
-                
                 return {
                     "status": "healthy",
-                    "database": db_status,
                     "auth_required": AppConfig.auth_required,
                     "rate_limit_enabled": AppConfig.rate_limit_enabled,
                     "request_logging_enabled": AppConfig.request_logging_enabled,

@@ -11,6 +11,9 @@ ZeroArt is a powerful, lightweight Python library for generating stunning ASCII 
   - Slant Font
   - Neon Font
   - Cyber Font
+  - 3D Font
+  - Electronic Font
+  - Isometric Font
 
 - **Zero Dependencies**
   - Completely standalone library
@@ -25,6 +28,8 @@ ZeroArt is a powerful, lightweight Python library for generating stunning ASCII 
   - Glitch effect
   - Text wrapping
   - Outline generation
+  - Gradient effect
+  - Bouncing effect
 
 ## 🛠 Installation
 
@@ -55,6 +60,9 @@ print(zeroart.figlet_format("AWESOME", font='block'))   # Block style
 print(zeroart.figlet_format("CODING", font='slant'))    # Slant style
 print(zeroart.figlet_format("NEON", font='neon'))       # Neon style
 print(zeroart.figlet_format("CYBER", font='cyber'))     # Cyber style
+print(zeroart.figlet_format("3D", font='3d'))           # 3D style
+print(zeroart.figlet_format("ELECTRONIC", font='electronic')) # Electronic style
+print(zeroart.figlet_format("ISOMETRIC", font='isometric')) # Isometric style
 ```
 
 ### Text Effects
@@ -70,6 +78,12 @@ print(zeroart.glitch("GLITCH", font='cyber'))
 
 # Outline effect
 print(zeroart.outline("BORDER", font='block'))
+
+# Gradient effect
+print(zeroart.gradient("GRADIENT", font='3d'))
+
+# Bouncing effect
+print(zeroart.bounce("BOUNCE", font='electronic'))
 ```
 
 ## 🎨 Available Fonts
@@ -78,12 +92,6 @@ print(zeroart.outline("BORDER", font='block'))
 2. **Slant Font**: Elegant, slanted text
 3. **Neon Font**: Glowing, pixel-style art
 4. **Cyber Font**: Cyberpunk-inspired rendering
-
-## 🤝 Contributing
-
-Contributions are welcome! 
-
-- Fork the repository
-- Create a new font
-- Add text effects
-- Improve existing code
+5. **3D Font**: Text with a 3D effect
+6. **Electronic Font**: Digital-style text
+7. **Isometric Font**: Text with an isometric perspective

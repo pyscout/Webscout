@@ -32,7 +32,7 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
           else
-            VERSION=$(grep -oP '__version__ = "\K[^"]+' webscout/version.py)
+            VERSION=$(grep -oP '__version__ = "\K[^"]*' webscout/version.py)
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
@@ -61,97 +61,51 @@ jobs:
             echo "Previous tag: $PREVIOUS_TAG"
           fi
 
-      - name: Generate changelog
+      - name: Extract changelog from changelog.md
         id: changelog
         if: steps.check_tag.outputs.exists == 'false'
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
           PREVIOUS_TAG="${{ steps.previous_tag.outputs.previous_tag }}"
           
-          echo "# 🚀 What's Changed in v$VERSION" > CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          
-          # Get commit range
-          if [ -z "$PREVIOUS_TAG" ]; then
-            COMMIT_RANGE=""
-            echo "📝 **Initial Release**" >> CHANGELOG.md
-            echo "" >> CHANGELOG.md
-          else
-            COMMIT_RANGE="$PREVIOUS_TAG..HEAD"
-            echo "📝 **Changes since $PREVIOUS_TAG**" >> CHANGELOG.md
-            echo "" >> CHANGELOG.md
+          # Check if changelog.md exists
+          if [ ! -f "changelog.md" ]; then
+            echo "Error: changelog.md not found"
+            exit 1
           fi
           
-          # Categorize commits
-          echo "## ✨ Features" >> CHANGELOG.md
-          git log $COMMIT_RANGE --pretty=format:"- %s (%h)" --grep="^feat" --grep="^feature" --regexp-ignore-case >> CHANGELOG.md || echo "- No new features" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
+          # Extract the section for the current version from changelog.md
+          # Look for the first version section (should be the latest)
+          awk '/^# 🚀 What.s Changed in v/{flag=1} flag{print; if(/^---$/ || /^## \[Unreleased\]/){exit}}' changelog.md > RELEASE_NOTES.md
           
-          echo "## 🐛 Bug Fixes" >> CHANGELOG.md
-          git log $COMMIT_RANGE --pretty=format:"- %s (%h)" --grep="^fix" --grep="^bug" --regexp-ignore-case >> CHANGELOG.md || echo "- No bug fixes" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          
-          echo "## 📚 Documentation" >> CHANGELOG.md
-          git log $COMMIT_RANGE --pretty=format:"- %s (%h)" --grep="^docs" --grep="^doc" --regexp-ignore-case >> CHANGELOG.md || echo "- No documentation updates" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          
-          echo "## 🔧 Maintenance" >> CHANGELOG.md
-          git log $COMMIT_RANGE --pretty=format:"- %s (%h)" --grep="^chore" --grep="^refactor" --grep="^perf" --grep="^style" --grep="^test" --regexp-ignore-case >> CHANGELOG.md || echo "- No maintenance updates" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          
-          echo "## 📦 Other Changes" >> CHANGELOG.md
-          git log $COMMIT_RANGE --pretty=format:"- %s (%h)" --invert-grep --grep="^feat" --grep="^fix" --grep="^docs" --grep="^chore" --grep="^refactor" --grep="^perf" --grep="^style" --grep="^test" --grep="^bug" --grep="^feature" --regexp-ignore-case >> CHANGELOG.md || echo "- No other changes" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          
-          # Add statistics
-          echo "## 📊 Statistics" >> CHANGELOG.md
-          if [ -z "$PREVIOUS_TAG" ]; then
-            TOTAL_COMMITS=$(git rev-list --count HEAD)
-          else
-            TOTAL_COMMITS=$(git rev-list --count $COMMIT_RANGE)
+          # If no content was extracted, check if version matches
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "Warning: Could not find changelog entry for v$VERSION in changelog.md"
+            echo "Generating basic changelog from git commits..."
+            
+            echo "# � What's Changed in v$VERSION" > RELEASE_NOTES.md
+            echo "" >> RELEASE_NOTES.md
+            
+            if [ -z "$PREVIOUS_TAG" ]; then
+              echo "📝 **Initial Release**" >> RELEASE_NOTES.md
+            else
+              echo "📝 **Changes since $PREVIOUS_TAG**" >> RELEASE_NOTES.md
+              echo "" >> RELEASE_NOTES.md
+              echo "## 📦 Changes" >> RELEASE_NOTES.md
+              git log $PREVIOUS_TAG..HEAD --pretty=format:"- %s (%h)" >> RELEASE_NOTES.md
+            fi
+            
+            echo "" >> RELEASE_NOTES.md
+            echo "" >> RELEASE_NOTES.md
+            echo "## � Installation" >> RELEASE_NOTES.md
+            echo '```bash' >> RELEASE_NOTES.md
+            echo "pip install --upgrade webscout==$VERSION" >> RELEASE_NOTES.md
+            echo '```' >> RELEASE_NOTES.md
           fi
-          echo "- **Total Commits:** $TOTAL_COMMITS" >> CHANGELOG.md
-          
-          if [ -z "$PREVIOUS_TAG" ]; then
-            FILES_CHANGED=$(git ls-files | wc -l)
-          else
-            FILES_CHANGED=$(git diff --name-only $COMMIT_RANGE | wc -l)
-          fi
-          echo "- **Files Changed:** $FILES_CHANGED" >> CHANGELOG.md
-          
-          CONTRIBUTORS=$(git log $COMMIT_RANGE --format='%aN' | sort -u | wc -l)
-          echo "- **Contributors:** $CONTRIBUTORS" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          
-          # Add installation instructions
-          echo "## 📦 Installation" >> CHANGELOG.md
-          echo '```bash' >> CHANGELOG.md
-          echo "pip install --upgrade webscout==$VERSION" >> CHANGELOG.md
-          echo '```' >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          
-          # Add links
-          echo "## 🔗 Links" >> CHANGELOG.md
-          echo "- 📦 [PyPI Package](https://pypi.org/project/webscout/$VERSION/)" >> CHANGELOG.md
-          echo "- 📖 [Documentation](https://github.com/OEvortex/Webscout/tree/v$VERSION/docs)" >> CHANGELOG.md
-          echo "- 🐛 [Report Issues](https://github.com/OEvortex/Webscout/issues)" >> CHANGELOG.md
-          echo "- 💬 [Discussions](https://github.com/OEvortex/Webscout/discussions)" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          
-          # Add footer
-          echo "---" >> CHANGELOG.md
-          echo "" >> CHANGELOG.md
-          echo "**Full Changelog**: https://github.com/OEvortex/Webscout/compare/$PREVIOUS_TAG...v$VERSION" >> CHANGELOG.md
           
           # Output for GitHub Actions
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          cat CHANGELOG.md >> $GITHUB_OUTPUT
+          cat RELEASE_NOTES.md >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create Git Tag
@@ -180,7 +134,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: changelog-v${{ steps.get_version.outputs.version }}
-          path: CHANGELOG.md
+          path: RELEASE_NOTES.md
           retention-days: 90
 
       - name: Comment on related PRs

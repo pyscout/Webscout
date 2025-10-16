@@ -31,21 +31,14 @@ services:
       - WEBSCOUT_LOG_LEVEL=info
       # FastAPI metadata (new)
       - WEBSCOUT_API_TITLE=Webscout OpenAI API
-      - WEBSCOUT_API_DESCRIPTION=OpenAI API compatible interface for various LLM providers with enhanced authentication
+      - WEBSCOUT_API_DESCRIPTION=OpenAI API compatible interface for various LLM providers
       - WEBSCOUT_API_VERSION=0.2.0
       - WEBSCOUT_API_DOCS_URL=/docs
       - WEBSCOUT_API_REDOC_URL=/redoc
       - WEBSCOUT_API_OPENAPI_URL=/openapi.json
-      # Authentication settings (NEW!)
-      - WEBSCOUT_NO_AUTH=false
-      - WEBSCOUT_NO_RATE_LIMIT=false
       - WEBSCOUT_DATA_DIR=/app/data
 
-      # Database settings (NEW!)
-      # - MONGODB_URL=mongodb://mongodb:27017/webscout
-
       # Optional API configuration
-      # - WEBSCOUT_API_KEY=your-secret-api-key
       # - WEBSCOUT_DEFAULT_PROVIDER=ChatGPT
       # - WEBSCOUT_BASE_URL=/api/v1
 
@@ -65,11 +58,11 @@ services:
       - webscout-data:/app/data
 
     # Override default command for enhanced auth system
-    command: ["python", "-m", "webscout.auth.server"]
+    command: ["python", "-m", "webscout.server.server"]
 
     # Health check configuration
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${WEBSCOUT_PORT:-8000}/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${WEBSCOUT_PORT:-8000}/monitor/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -118,9 +111,6 @@ services:
       - WEBSCOUT_WORKERS=4  # More workers for production
       - WEBSCOUT_LOG_LEVEL=warning
       - WEBSCOUT_DEBUG=false
-      # Authentication enabled by default in production
-      - WEBSCOUT_NO_AUTH=false
-      - WEBSCOUT_NO_RATE_LIMIT=false
       - WEBSCOUT_DATA_DIR=/app/data
 
     ports:
@@ -139,7 +129,7 @@ services:
       "--access-logfile", "/app/logs/access.log",
       "--error-logfile", "/app/logs/error.log",
       "--preload",
-      "webscout.auth.server:create_app"
+      "webscout.server.server:create_app"
     ]
 
     deploy:
@@ -173,9 +163,6 @@ services:
       - WEBSCOUT_WORKERS=1
       - WEBSCOUT_LOG_LEVEL=debug
       - WEBSCOUT_DEBUG=true
-      # No-auth mode for easier development
-      - WEBSCOUT_NO_AUTH=true
-      - WEBSCOUT_NO_RATE_LIMIT=true
       - WEBSCOUT_DATA_DIR=/app/data
 
     ports:
@@ -192,48 +179,8 @@ services:
       "--port", "${WEBSCOUT_PORT:-8000}",
       "--reload",
       "--log-level", "debug",
-      "webscout.auth.server:create_app"
+      "webscout.server.server:create_app"
     ]
-
-  # -----------------------------------------------------------------------------
-  # MongoDB Database (optional)
-  # -----------------------------------------------------------------------------
-  mongodb:
-    image: mongo:7-jammy
-    container_name: webscout-mongodb
-    restart: unless-stopped
-    profiles:
-      - mongodb
-      - production
-
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=webscout
-      - MONGO_INITDB_ROOT_PASSWORD=webscout_password
-      - MONGO_INITDB_DATABASE=webscout
-
-    ports:
-      - "27017:27017"
-
-    volumes:
-      - mongodb-data:/data/db
-      - mongodb-config:/data/configdb
-
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-
-    # Resource limits
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
 
   # -----------------------------------------------------------------------------
   # Nginx reverse proxy (optional)
@@ -261,7 +208,7 @@ services:
       - webscout-api
 
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/monitor/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -298,10 +245,6 @@ volumes:
   webscout-logs:
     driver: local
   webscout-data:
-    driver: local
-  mongodb-data:
-    driver: local
-  mongodb-config:
     driver: local
   prometheus-data:
     driver: local

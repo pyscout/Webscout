@@ -454,6 +454,68 @@ class Scout:
             pass
         return siblings
 
+    def find_next(self, name=None, attrs={}, text=None, **kwargs) -> Optional[Tag]:
+        """
+        Find the next element in document order.
+
+        Args:
+            name: Tag name to search for
+            attrs: Attributes to match
+            text: Text content to match
+            **kwargs: Additional attributes
+
+        Returns:
+            Optional[Tag]: Next matching element or None
+        """
+        return self._soup.find_next(name, attrs, text, **kwargs)
+
+    def find_all_next(self, name=None, attrs={}, text=None, limit=None, **kwargs) -> List[Tag]:
+        """
+        Find all next elements in document order.
+
+        Args:
+            name: Tag name to search for
+            attrs: Attributes to match
+            text: Text content to match
+            limit: Maximum number of results
+            **kwargs: Additional attributes
+
+        Returns:
+            List[Tag]: List of matching elements
+        """
+        return self._soup.find_all_next(name, attrs, text, limit, **kwargs)
+
+    def find_previous(self, name=None, attrs={}, text=None, **kwargs) -> Optional[Tag]:
+        """
+        Find the previous element in document order.
+
+        Args:
+            name: Tag name to search for
+            attrs: Attributes to match
+            text: Text content to match
+            **kwargs: Additional attributes
+
+        Returns:
+            Optional[Tag]: Previous matching element or None
+        """
+        return self._soup.find_previous(name, attrs, text, **kwargs)
+
+    def find_all_previous(self, name=None, attrs={}, text=None, limit=None, **kwargs) -> List[Tag]:
+        """
+        Find all previous elements in document order.
+
+        Args:
+            name: Tag name to search for
+            attrs: Attributes to match
+            text: Text content to match
+            limit: Maximum number of results
+            **kwargs: Additional attributes
+
+        Returns:
+            List[Tag]: List of matching elements
+        """
+        return self._soup.find_all_previous(name, attrs, text, limit, **kwargs)
+
     def select(self, selector: str) -> List[Tag]:
         """
         Select elements using CSS selector.

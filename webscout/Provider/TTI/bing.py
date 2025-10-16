@@ -7,6 +7,7 @@ from webscout.Provider.TTI.utils import ImageData, ImageResponse
 from webscout.Provider.TTI.base import TTICompatibleProvider, BaseImages
 from io import BytesIO
 from webscout.litagent import LitAgent
+from webscout.scout import Scout
 
 try:
     from PIL import Image
@@ -81,9 +82,8 @@ class Images(BaseImages):
                 time.sleep(3)
                 try:
                     poll_resp = session.get(polling_url, headers=headers, timeout=timeout)
-                    from bs4 import BeautifulSoup
-                    soup = BeautifulSoup(poll_resp.text, "html.parser")
-                    imgs = [img["src"].split("?")[0] for img in soup.select(".img_cont .mimg") if img.get("src")]
+                    scout = Scout(poll_resp.text, features='html.parser')
+                    imgs = [img["src"].split("?")[0] for img in scout.select(".img_cont .mimg") if img.attrs.get("src")]
                     if imgs:
                         img_url = imgs[0]
                         break
@@ -232,7 +232,7 @@ class BingImageAI(TTICompatibleProvider):
 
 if __name__ == "__main__":
     from rich import print
-    client = BingImageAI(cookie="1QyBY4Z1eHBW6fbI25kdM5TrlRGWzn5PFySapCOfvvz04zaounFG660EipVJSOXXvcdeXXLwsWHdDI8bNymucF_QnMHSlY1mc0pPI7e9Ar6o-_7e9Ik5QOe1nkJIe5vz22pibioTqx0IfVKwmVbX22A3bFD7ODaSZalKFr-AuxgAaRVod-giTTry6Ei7RVgisF7BHlkMPPwtCeO234ujgug")
+    client = BingImageAI(cookie="1Fw9daLSZzVBJXgevTDuc0jHZ60l4m5IiQEwjRCFOwEkpEBDmw3b8CEAALFSwZ1QBu-rATNkfD0i0gfJmVHeFlogqIriGwxNwT9T6fVREgAQD4_qn0VnQYP681NN4K80t6o-eJXnK1MBhdjxTIaok8173LGmLkEWLqHC0k3dYnF7m2kHRhf1dxjEH3WDI56hxiSPZtnggdzrfnuFAmOgCQQ")
     response = client.images.create(
         model="gpt4o",
         prompt="A cat riding a bicycle",

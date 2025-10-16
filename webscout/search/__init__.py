@@ -4,14 +4,14 @@ from .base import BaseSearch, BaseSearchEngine
 from .duckduckgo_main import DuckDuckGoSearch
 from .yep_main import YepSearch
 from .bing_main import BingSearch
+from .yahoo_main import YahooSearch
 
 # Import new search engines
 from .engines.brave import Brave
 from .engines.mojeek import Mojeek
-from .engines.yahoo import Yahoo
+
 from .engines.yandex import Yandex
 from .engines.wikipedia import Wikipedia
-from .engines.yahoo_news import YahooNews
 
 # Import result models
 from .results import (
@@ -31,14 +31,13 @@ __all__ = [
     "DuckDuckGoSearch",
     "YepSearch",
     "BingSearch",
+    "YahooSearch",
     
     # Individual engines
     "Brave",
     "Mojeek",
-    "Yahoo",
     "Yandex",
     "Wikipedia",
-    "YahooNews",
     
     # Result models
     "TextResult",

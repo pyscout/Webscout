@@ -120,7 +120,7 @@ class HttpClient:
             else:
                 raise WebscoutE(f"{resp.url} returned {resp.status_code}")
                 
-        except curl_cffi.requests.RequestException as ex:
+        except Exception as ex:
             if "time" in str(ex).lower() or "timeout" in str(ex).lower():
                 raise TimeoutE(f"{url} {type(ex).__name__}: {ex}") from ex
             raise WebscoutE(f"{url} {type(ex).__name__}: {ex}") from ex

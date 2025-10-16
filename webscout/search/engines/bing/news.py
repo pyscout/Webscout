@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Dict, List
 from urllib.parse import urlencode
-from bs4 import BeautifulSoup
 from time import sleep
 
 from .base import BingBase
+from webscout.scout import Scout
 
 
 class BingNewsSearch(BingBase):
@@ -16,6 +16,9 @@ class BingNewsSearch(BingBase):
         region = args[1] if len(args) > 1 else kwargs.get("region", "us")
         safesearch = args[2] if len(args) > 2 else kwargs.get("safesearch", "moderate")
         max_results = args[3] if len(args) > 3 else kwargs.get("max_results", 10)
+
+        if max_results is None:
+            max_results = 10
 
         if not keywords:
             raise ValueError("Keywords are mandatory")
@@ -50,15 +53,14 @@ class BingNewsSearch(BingBase):
             try:
                 response = self.session.get(full_url, timeout=self.timeout)
                 response.raise_for_status()
-                data = response.json()
+                html = response.text
             except Exception as e:
                 raise Exception(f"Failed to fetch news: {str(e)}")
 
-            html = data.get('html', '')
             if not html:
                 break
 
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = Scout(html)
             news_items = soup.select('div.newsitem')
 
             for item in news_items:

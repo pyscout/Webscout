@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Dict, List
 from urllib.parse import urlencode
-from bs4 import BeautifulSoup
 from time import sleep
 
 from .base import BingBase
+from webscout.scout import Scout
 
 
 class BingTextSearch(BingBase):
@@ -17,6 +17,9 @@ class BingTextSearch(BingBase):
         safesearch = args[2] if len(args) > 2 else kwargs.get("safesearch", "moderate")
         max_results = args[3] if len(args) > 3 else kwargs.get("max_results", 10)
         unique = kwargs.get("unique", True)
+
+        if max_results is None:
+            max_results = 10
 
         if not keywords:
             raise ValueError("Keywords are mandatory")
@@ -46,7 +49,7 @@ class BingTextSearch(BingBase):
         while len(fetched_results) < max_results and urls_to_fetch:
             current_url = urls_to_fetch.pop(0)
             html = fetch_page(current_url)
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = Scout(html)
 
             links = soup.select('ol#b_results > li.b_algo')
             for link in links:

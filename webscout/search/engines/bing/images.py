@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from typing import Dict, List
 from urllib.parse import urlencode
-from bs4 import BeautifulSoup
 from time import sleep
 
 from .base import BingBase
+from webscout.scout import Scout
 
 
 class BingImagesSearch(BingBase):
@@ -16,6 +16,9 @@ class BingImagesSearch(BingBase):
         region = args[1] if len(args) > 1 else kwargs.get("region", "us")
         safesearch = args[2] if len(args) > 2 else kwargs.get("safesearch", "moderate")
         max_results = args[3] if len(args) > 3 else kwargs.get("max_results", 10)
+
+        if max_results is None:
+            max_results = 10
 
         if not keywords:
             raise ValueError("Keywords are mandatory")
@@ -59,7 +62,7 @@ class BingImagesSearch(BingBase):
             except Exception as e:
                 raise Exception(f"Failed to fetch images: {str(e)}")
 
-            soup = BeautifulSoup(html, 'html.parser')
+            soup = Scout(html)
             img_tags = soup.select('a.iusc img')
 
             for img in img_tags:

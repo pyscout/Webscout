@@ -16,8 +16,7 @@ import sys
 
 from .request_models import Message, ChatCompletionRequest
 from .exceptions import APIError, clean_text
-from .models import RequestLog
-from .auth_system import get_auth_components
+
 from .simple_logger import log_api_request, get_client_ip, generate_request_id
 from .config import AppConfig
 
@@ -33,9 +32,9 @@ logger = Logger(
 async def log_request(request_id: str, ip_address: str, model_used: str, question: str,
                      answer: str, response_time_ms: int, status_code: int = 200,
                      error_message: str = None, provider: str = None, request_obj=None):
-    """Log API request to database."""
+    """Log API request."""
     try:
-        # Use simple logger for no-auth mode if request logging is enabled
+        # Use simple logger if request logging is enabled
         if AppConfig.request_logging_enabled:
             user_agent = None
             if request_obj:
@@ -52,30 +51,6 @@ async def log_request(request_id: str, ip_address: str, model_used: str, questio
                 error=error_message,
                 user_agent=user_agent
             )
-        
-        # Also use the existing auth system logging if available
-        auth_manager, db_manager, _ = get_auth_components()
-        
-        if db_manager:
-            request_log = RequestLog(
-                id=None,  # Will be auto-generated
-                request_id=request_id,
-                ip_address=ip_address,
-                model_used=model_used,
-                question=question,
-                answer=answer,
-                user_id=None,  # No auth mode
-                api_key_id=None,  # No auth mode
-                created_at=datetime.now(timezone.utc),
-                response_time_ms=response_time_ms,
-                status_code=status_code,
-                error_message=error_message,
-                metadata={}
-            )
-            
-            await db_manager.create_request_log(request_log)
-            logger.debug(f"Logged request {request_id} to auth database")
-        
     except Exception as e:
         logger.error(f"Failed to log request {request_id}: {e}")
         # Don't raise exception to avoid breaking the main request flow

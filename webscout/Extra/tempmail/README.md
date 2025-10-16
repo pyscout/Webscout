@@ -1,6 +1,6 @@
 <div align="center">
-  <a href="https://github.com/OEvortex/Webscout">
-    <img src="https://img.shields.io/badge/WebScout-TempMail%20Module-blue?style=for-the-badge&logo=mail&logoColor=white" alt="WebScout TempMail">
+  <a href="https://github.com/pyscout/Webscout">
+    <img src="https://img.shields.io/badge/WebScout-TempMail%20Toolkit-blue?style=for-the-badge&logo=maildotru&logoColor=white" alt="WebScout TempMail Toolkit">
   </a>
 
   <h1>📧 TempMail</h1>
@@ -484,5 +484,5 @@ Please refer to the main Webscout project's contributing guidelines if you plan 
     <a href="https://buymeacoffee.com/oevortex"><img alt="Buy Me A Coffee" src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black"></a>
   </div>
   <p>📧 TempMail - Part of the Webscout Toolkit</p>
-  <a href="https://github.com/OEvortex/Webscout">Back to Main Webscout Project</a>
+  <a href="https://github.com/pyscout/Webscout">Back to Main Webscout Project</a>
 </div>

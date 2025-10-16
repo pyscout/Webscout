@@ -551,5 +551,4 @@ To add support for new search engines:
 
 ## License
 
-This search functionality is part of Webscout and follows the same license terms.</content>
-<parameter name="filePath">c:\Users\koula\Desktop\Webscout\docs\search.md
+This search functionality is part of Webscout and follows the same license terms.

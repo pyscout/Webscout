@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="https://github.com/OEvortex/Webscout">
+  <a href="https://github.com/pyscout/Webscout">
     <img src="https://img.shields.io/badge/WebScout-Ultimate%20Toolkit-blue?style=for-the-badge&logo=python&logoColor=white" alt="WebScout Logo">
   </a>
  
@@ -17,7 +17,7 @@
     <a href="https://pepy.tech/project/webscout"><img src="https://static.pepy.tech/badge/webscout/month?style=flat-square" alt="Monthly Downloads"></a>
     <a href="https://pepy.tech/project/webscout"><img src="https://static.pepy.tech/badge/webscout?style=flat-square" alt="Total Downloads"></a>
     <a href="#"><img src="https://img.shields.io/pypi/pyversions/webscout?style=flat-square&logo=python" alt="Python Version"></a>
-    <a href="https://deepwiki.com/OEvortex/Webscout"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
+    <a href="https://deepwiki.com/pyscout/Webscout"><img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki"></a>
   </p>
 </div>
 
@@ -29,6 +29,7 @@
 - [⚙️ Installation](#️-installation)
 - [🖥️ Command Line Interface](#️-command-line-interface)
 - [🔄 OpenAI-Compatible API Server](docs/openai-api-server.md)
+- [🕸️ Scout: HTML Parser & Web Crawler](docs/scout.md)
 - [🤖 AI Models and Voices](#-ai-models-and-voices)
 - [💬 AI Chat Providers](#-ai-chat-providers)
 - [👨‍💻 Advanced AI Interfaces](#-advanced-ai-interfaces)
@@ -42,7 +43,7 @@
 >
 > - **Native Compatibility:** Webscout's own native API for maximum flexibility
 > - **OpenAI Compatibility:** Use providers with OpenAI-compatible interfaces
-> - **Local LLM Compatibility:** Run local models with [Inferno](https://github.com/HelpingAI/inferno), an OpenAI-compatible server (now a standalone package)
+> - **Local LLM Compatibility:** Run local models with OpenAI-compatible servers
 >
 > Choose the approach that best fits your needs! For OpenAI compatibility, check the [OpenAI Providers README](webscout/Provider/OPENAI/README.md) or see the [OpenAI-Compatible API Server](#-openai-compatible-api-server) section below.
 
@@ -73,7 +74,7 @@
 - **AI Powerhouse:** Access and interact with various AI models through three compatibility options:
   - **Native API:** Use Webscout's native interfaces for providers like OpenAI, Cohere, Gemini, and many more
   - **[OpenAI-Compatible Providers](webscout/Provider/OPENAI/README.md):** Seamlessly integrate with various AI providers using standardized OpenAI-compatible interfaces
-  - **[Local LLMs with Inferno](https://github.com/HelpingAI/inferno):** Run local models with an OpenAI-compatible server (now available as a standalone package)
+  - **Local LLMs:** Run local models with OpenAI-compatible servers (see [Inferno documentation](docs/inferno.md))
 - **[AI Search](webscout/Provider/AISEARCH/README.md):** AI-powered search engines with advanced capabilities
 </p>
 </details>
@@ -98,8 +99,7 @@
 - **[LitPrinter](webscout/litprinter/Readme.md):** Styled console output with rich formatting and colors
 - **[LitLogger](webscout/litlogger/README.md):** Simplified logging with customizable formats and color schemes
 - **[LitAgent](webscout/litagent/Readme.md):** Modern user agent generator that keeps your requests undetectable
-- **[Scout](webscout/scout/README.md):** Advanced web parsing and crawling library with intelligent HTML/XML parsing
-- **[Inferno](https://github.com/HelpingAI/inferno):** Run local LLMs with an OpenAI-compatible API and interactive CLI (now a standalone package: `pip install inferno-llm`)
+- **[Scout](docs/scout.md):** Advanced web parsing and crawling library with intelligent HTML/XML parsing
 - **[GGUF Conversion](webscout/Extra/gguf.md):** Convert and quantize Hugging Face models to GGUF format
 - **[Utility Decorators](docs/decorators.md):** Easily measure function execution time (`timeIt`) and add retry logic (`retry`) to any function
 - **[Stream Sanitization Utilities](docs/sanitize.md):** Advanced tools for cleaning, decoding, and processing data streams
@@ -166,7 +166,7 @@ webscout-server
 
 ```bash
 # Clone the repository
-git clone https://github.com/OEvortex/Webscout.git
+git clone https://github.com/pyscout/Webscout.git
 cd Webscout
 
 # Install in development mode with UV
@@ -183,8 +183,8 @@ uv pip install -e ".[dev,api]"
 
 ```bash
 # Pull and run the Docker image
-docker pull oevortex/webscout:latest
-docker run -it oevortex/webscout:latest
+docker pull pyscout/webscout:latest
+docker run -it pyscout/webscout:latest
 ```
 
 ### 📱 Quick Start Commands
@@ -247,46 +247,6 @@ Webscout provides comprehensive CLI commands for all search engines. See the [Se
 
 </p>
 </details>
-
-<details open>
-<summary><b>Inferno LLM Commands</b></summary>
-<p>
-
-Inferno is now a standalone package. Install it separately with:
-
-```bash
-pip install inferno-llm
-```
-
-After installation, you can use its CLI for managing and using local LLMs:
-
-```bash
-inferno --help
-```
-
-| Command                  | Description                                     |
-| ------------------------ | ----------------------------------------------- |
-| `inferno pull <model>`   | Download a model from Hugging Face              |
-| `inferno list`           | List downloaded models                          |
-| `inferno serve <model>`  | Start a model server with OpenAI-compatible API |
-| `inferno run <model>`    | Chat with a model interactively                 |
-| `inferno remove <model>` | Remove a downloaded model                       |
-| `inferno version`        | Show version information                        |
-
-For more information, visit the [Inferno GitHub repository](https://github.com/HelpingAI/inferno) or [PyPI package page](https://pypi.org/project/inferno-llm/).
-
-</p>
-</details>
-
-> [!NOTE]  
-> **Hardware requirements for running models with Inferno:**
->
-> - Around 2 GB of RAM for 1B models
-> - Around 4 GB of RAM for 3B models
-> - At least 8 GB of RAM for 7B models
-> - 16 GB of RAM for 13B models
-> - 32 GB of RAM for 33B models
-> - GPU acceleration is recommended for better performance
 
 For detailed information about the OpenAI-compatible API server, including setup, configuration, and usage examples, see the [OpenAI API Server Documentation](docs/openai-api-server.md).
 

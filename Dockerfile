@@ -49,9 +49,7 @@ RUN pip install \
     gunicorn[gthread] \
     uvicorn[standard] \
     prometheus-client \
-    structlog \
-    motor \
-    pymongo
+    structlog
 
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime - Create minimal production image
@@ -92,13 +90,10 @@ ENV PYTHONUNBUFFERED=1 \
     WEBSCOUT_PORT=8000 \
     WEBSCOUT_WORKERS=1 \
     WEBSCOUT_LOG_LEVEL=info \
-    # Authentication settings (new)
-    WEBSCOUT_NO_AUTH=false \
-    WEBSCOUT_NO_RATE_LIMIT=false \
     WEBSCOUT_DATA_DIR=/app/data \
     # FastAPI metadata (new)
     WEBSCOUT_API_TITLE="Webscout OpenAI API" \
-    WEBSCOUT_API_DESCRIPTION="OpenAI API compatible interface for various LLM providers with enhanced authentication" \
+    WEBSCOUT_API_DESCRIPTION="OpenAI API compatible interface for various LLM providers" \
     WEBSCOUT_API_VERSION="0.2.0" \
     WEBSCOUT_API_DOCS_URL="/docs" \
     WEBSCOUT_API_REDOC_URL="/redoc" \
@@ -138,8 +133,8 @@ EXPOSE $WEBSCOUT_PORT
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${WEBSCOUT_PORT:-8000}/health || exit 1
+    CMD curl -f http://localhost:${WEBSCOUT_PORT:-8000}/monitor/health || exit 1
 
 # Default command - start the webscout API server with new auth system
 # Environment variables will be used by the application
-CMD ["python", "-m", "webscout.auth.server"]
+CMD ["python", "-m", "webscout.server.server"]

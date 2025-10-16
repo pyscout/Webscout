@@ -1,31 +1,27 @@
-# OpenAI-Compatible API Server (`webscout.auth`)
+# OpenAI-Compatible API Server (`webscout.server`)
 
-Webscout's [`webscout.auth`](../webscout/auth/__init__.py:1) module provides a comprehensive OpenAI-compatible API server with advanced authentication, rate limiting, and provider management capabilities. This server allows you to use any supported provider with tools and applications designed for OpenAI's API while maintaining enterprise-grade security and performance.
+Webscout's [`webscout.server`](../webscout/server/__init__.py:1) module provides a comprehensive OpenAI-compatible API server with provider management capabilities. This server allows you to use any supported provider with tools and applications designed for OpenAI's API.
 
 ## Table of Contents
 
 1. [Core Components](#core-components)
 2. [Server Configuration](#server-configuration)
-3. [Authentication System](#authentication-system)
-4. [Rate Limiting](#rate-limiting)
-5. [Provider Management](#provider-management)
-6. [API Endpoints](#api-endpoints)
-7. [Starting the Server](#starting-the-server)
-8. [Usage Examples](#usage-examples)
-9. [Environment Variables](#environment-variables)
-10. [Database Integration](#database-integration)
-11. [Error Handling](#error-handling)
-12. [Security Features](#security-features)
-13. [Troubleshooting](#troubleshooting)
+3. [Provider Management](#provider-management)
+4. [API Endpoints](#api-endpoints)
+5. [Starting the Server](#starting-the-server)
+6. [Usage Examples](#usage-examples)
+7. [Environment Variables](#environment-variables)
+8. [Error Handling](#error-handling)
+9. [Troubleshooting](#troubleshooting)
 
 ## Core Components
 
-### [`server.py`](../webscout/auth/server.py:1)
+### [`server.py`](../webscout/server/server.py:1)
 
 The main server module that creates and configures the FastAPI application with OpenAI-compatible endpoints.
 
 ```python
-from webscout.auth.server import create_app, run_api, start_server
+from webscout.server.server import create_app, run_api, start_server
 
 # Create FastAPI app
 app = create_app()
@@ -37,46 +33,22 @@ start_server(port=8000, host="0.0.0.0")
 **Key Features:**
 - OpenAI-compatible API endpoints
 - Automatic provider discovery and registration
-- Built-in authentication and rate limiting
 - Comprehensive error handling and logging
 - Interactive API documentation with custom UI
 
-### [`auth_system.py`](../webscout/auth/auth_system.py:1)
-
-Central authentication system that coordinates all security components.
-
-```python
-from webscout.auth.auth_system import initialize_auth_system, get_auth_components
-
-# Initialize authentication
-initialize_auth_system(app, auth_required=True, rate_limit_enabled=True)
-
-# Get auth components
-components = get_auth_components()
-```
-
-**Components:**
-- [`DatabaseManager`](../webscout/auth/database.py:321): MongoDB with JSON fallback
-- [`APIKeyManager`](../webscout/auth/api_key_manager.py:16): API key lifecycle management
-- [`RateLimiter`](../webscout/auth/rate_limiter.py:15): Request rate limiting
-- [`AuthMiddleware`](../webscout/auth/middleware.py:20): Request authentication and authorization
-
 ## Server Configuration
 
-### [`ServerConfig`](../webscout/auth/config.py:22)
+### [`ServerConfig`](../webscout/server/config.py:22)
 
 Centralized configuration management for the API server.
 
 ```python
-from webscout.auth.config import ServerConfig
+from webscout.server.config import ServerConfig
 
 config = ServerConfig()
 config.update(
     port=8080,
     host="localhost",
-    auth_required=False,
-    rate_limit_enabled=True,
-    default_rate_limit=60
 )
 ```
 
@@ -87,110 +59,18 @@ config.update(
 | `host` | `str` | `"0.0.0.0"` | Server host address |
 | `port` | `int` | `8000` | Server port number |
 | `debug` | `bool` | `False` | Enable debug mode |
-| `auth_required` | `bool` | `True` | Enable/disable authentication |
-| `rate_limit_enabled` | `bool` | `True` | Enable/disable rate limiting |
-| `default_rate_limit` | `int` | `60` | Default requests per minute |
-| `cors_origins` | `List[str]` | `["*"]` | CORS allowed origins |
+| `cors_origins` | `List[str]` | `["*"` | CORS allowed origins |
 | `max_request_size` | `int` | `10MB` | Maximum request size |
 | `request_timeout` | `int` | `300` | Request timeout in seconds |
 
-## Authentication System
-
-### [`APIKeyManager`](../webscout/auth/api_key_manager.py:16)
-
-Manages API key generation, validation, and lifecycle with secure storage and comprehensive tracking.
-
-```python
-from webscout.auth.api_key_manager import APIKeyManager
-from webscout.auth.database import DatabaseManager
-
-# Initialize
-db_manager = DatabaseManager()
-api_key_manager = APIKeyManager(db_manager)
-
-# Create API key
-api_key, user = await api_key_manager.create_api_key(
-    username="john_doe",
-    telegram_id="123456789",
-    name="Production Key",
-    rate_limit=100,
-    expires_in_days=30
-)
-```
-
-**Key Features:**
-- Secure key generation with [`secrets`](../webscout/auth/api_key_manager.py:24) module
-- One API key per user policy
-- Automatic expiration handling
-- Usage tracking and analytics
-- Telegram ID integration for user management
-
-### [`User`](../webscout/auth/models.py:11) and [`APIKey`](../webscout/auth/models.py:53) Models
-
-Data models for user and API key management with comprehensive validation.
-
-```python
-from webscout.auth.models import User, APIKey
-from datetime import datetime, timezone
-
-# Create user
-user = User(
-    username="developer",
-    telegram_id=123456789,
-    created_at=datetime.now(timezone.utc)
-)
-
-# Create API key
-api_key = APIKey(
-    key="ws_abc123...",
-    user_id=user.id,
-    name="Development Key",
-    rate_limit=50,
-    expires_at=None  # No expiration
-)
-```
-
-## Rate Limiting
-
-### [`RateLimiter`](../webscout/auth/rate_limiter.py:15)
-
-Advanced rate limiting system with sliding window algorithm and IP-based fallback.
-
-```python
-from webscout.auth.rate_limiter import RateLimiter
-
-rate_limiter = RateLimiter(database_manager)
-
-# Check rate limit
-is_allowed, rate_info = await rate_limiter.check_rate_limit(api_key)
-
-# IP-based rate limiting (no-auth mode)
-is_allowed, rate_info = await rate_limiter.check_ip_rate_limit("192.168.1.1")
-```
-
-**Rate Limiting Features:**
-- Sliding window algorithm for accurate rate limiting
-- Per-API-key and per-IP rate limiting
-- Automatic cleanup of expired entries
-- Configurable time windows and limits
-- Rate limit status reporting
-
-**Rate Limit Response Headers:**
-```http
-X-RateLimit-Limit: 60
-X-RateLimit-Remaining: 45
-X-RateLimit-Reset: 2024-01-15T10:30:00Z
-Retry-After: 15
-```
-
 ## Provider Management
 
-### [`providers.py`](../webscout/auth/providers.py:1)
+### [`providers.py`](../webscout/server/providers.py:1)
 
 Automatic provider discovery and management system with intelligent model resolution.
 
 ```python
-from webscout.auth.providers import (
+from webscout.server.providers import (
     initialize_provider_map,
     resolve_provider_and_model,
     get_provider_instance
@@ -225,7 +105,6 @@ import requests
 response = requests.post(
     "http://localhost:8000/v1/chat/completions",
     headers={
-        "Authorization": "Bearer your-api-key",
         "Content-Type": "application/json"
     },
     json={
@@ -249,7 +128,6 @@ response = requests.post(
 response = requests.post(
     "http://localhost:8000/v1/images/generations",
     headers={
-        "Authorization": "Bearer your-api-key",
         "Content-Type": "application/json"
     },
     json={
@@ -268,34 +146,7 @@ response = requests.post(
 
 ```python
 response = requests.get(
-    "http://localhost:8000/v1/models",
-    headers={"Authorization": "Bearer your-api-key"}
-)
-```
-
-### Authentication Endpoints
-
-**API Key Generation:** `POST /v1/auth/generate-key`
-
-```python
-response = requests.post(
-    "http://localhost:8000/v1/auth/generate-key",
-    json={
-        "username": "developer",
-        "telegram_id": "123456789",
-        "name": "Development Key",
-        "rate_limit": 100,
-        "expires_in_days": 30
-    }
-)
-```
-
-**API Key Validation:** `GET /v1/auth/validate`
-
-```python
-response = requests.get(
-    "http://localhost:8000/v1/auth/validate",
-    headers={"Authorization": "Bearer your-api-key"}
+    "http://localhost:8000/v1/models"
 )
 ```
 
@@ -312,11 +163,6 @@ webscout-server
 # Custom configuration
 webscout-server --port 8080 --host localhost --debug
 
-# Authentication modes
-webscout-server --no-auth                    # Disable authentication
-webscout-server --api-key "your-secret-key"  # Legacy API key
-webscout-server --no-rate-limit             # Disable rate limiting
-
 # Production settings
 webscout-server --workers 4 --log-level info
 ```
@@ -324,7 +170,7 @@ webscout-server --workers 4 --log-level info
 ### Programmatic Startup
 
 ```python
-from webscout.auth import start_server, run_api
+from webscout.server import start_server, run_api
 
 # Simple startup
 start_server()
@@ -334,8 +180,6 @@ start_server(
     port=8080,
     host="0.0.0.0",
     debug=False,
-    no_auth=False,
-    no_rate_limit=False
 )
 
 # Full control with run_api
@@ -355,10 +199,10 @@ run_api(
 uv run --extra api webscout-server
 
 # Using Python module
-python -m webscout.auth.server
+python -m webscout.server.server
 
 # Direct module execution
-python -m webscout.auth.server --port 8080
+python -m webscout.server.server --port 8080
 ```
 
 ## Usage Examples
@@ -370,7 +214,7 @@ from openai import OpenAI
 
 # Initialize client
 client = OpenAI(
-    api_key="your-api-key",
+    api_key="dummy-key", # API key is not required, but the client may expect a value
     base_url="http://localhost:8000/v1"
 )
 
@@ -409,7 +253,6 @@ for chunk in stream:
 # Chat completion
 curl http://localhost:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-api-key" \
   -d '{
     "model": "ChatGPT/gpt-4",
     "messages": [
@@ -418,16 +261,7 @@ curl http://localhost:8000/v1/chat/completions \
   }'
 
 # List models
-curl http://localhost:8000/v1/models \
-  -H "Authorization: Bearer your-api-key"
-
-# Generate API key
-curl http://localhost:8000/v1/auth/generate-key \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "testuser",
-    "telegram_id": "123456789"
-  }'
+curl http://localhost:8000/v1/models
 ```
 
 ## Environment Variables
@@ -444,15 +278,9 @@ export WEBSCOUT_WORKERS="4"
 export WEBSCOUT_LOG_LEVEL="info"
 export WEBSCOUT_DEBUG="false"
 
-# Authentication settings
-export WEBSCOUT_NO_AUTH="false"
-export WEBSCOUT_NO_RATE_LIMIT="false"
-export WEBSCOUT_API_KEY="your-legacy-key"
+# Optional API configuration
 export WEBSCOUT_DEFAULT_PROVIDER="ChatGPT"
-
-# Database settings
-export MONGODB_URL="mongodb://localhost:27017"
-export WEBSCOUT_DATA_DIR="./data"
+export WEBSCOUT_BASE_URL="/api/v1"
 ```
 
 ### Docker Environment
@@ -467,56 +295,14 @@ export WEBSCOUT_API_DOCS_URL="/docs"
 
 For a complete list of supported environment variables and Docker deployment options, see [DOCKER.md](../DOCKER.md).
 
-## Database Integration
-
-### [`DatabaseManager`](../webscout/auth/database.py:321)
-
-Flexible database system with MongoDB primary and JSON file fallback.
-
-```python
-from webscout.auth.database import DatabaseManager
-
-# Initialize with MongoDB
-db_manager = DatabaseManager(
-    mongo_connection_string="mongodb://localhost:27017",
-    data_dir="./data"
-)
-
-await db_manager.initialize()
-
-# Database operations
-user = await db_manager.create_user(user_obj)
-api_key = await db_manager.create_api_key(api_key_obj)
-```
-
-**Database Features:**
-- MongoDB with automatic JSON fallback
-- Atomic operations with transaction support
-- Automatic connection management
-- Data validation and integrity checks
-- Performance optimization with indexing
-
-### JSON Database Fallback
-
-```python
-from webscout.auth.database import JSONDatabase
-
-# Direct JSON database usage
-json_db = JSONDatabase(data_dir="./data")
-
-# Thread-safe operations
-user = await json_db.create_user(user_obj)
-api_key = await json_db.get_api_key("ws_key123")
-```
-
 ## Error Handling
 
-### [`APIError`](../webscout/auth/exceptions.py:26)
+### [`APIError`](../webscout/server/exceptions.py:26)
 
 Comprehensive error handling with OpenAI-compatible error responses.
 
 ```python
-from webscout.auth.exceptions import APIError
+from webscout.server.exceptions import APIError
 from starlette.status import HTTP_400_BAD_REQUEST
 
 # Raise API error
@@ -561,60 +347,19 @@ The server provides comprehensive exception handling with detailed error respons
     "type": "validation_error"
   }
 }
-
-# Rate limit errors
-{
-  "error": "Rate limit exceeded",
-  "code": "rate_limit_exceeded",
-  "details": {
-    "message": "Rate limit of 60 requests per minute exceeded",
-    "retry_after": 15,
-    "reset_at": "2024-01-15T10:30:00Z"
-  }
-}
 ```
 
-## Security Features
+## Troubleshooting
 
-### Authentication Modes
+If you encounter issues, check the server logs for detailed error messages. You can increase the log level to `debug` for more verbose output:
 
-**1. Enhanced API Keys (Default)**
-- Telegram ID-based user management
-- One API key per user policy
-- Automatic expiration and renewal
-- Usage tracking and analytics
-
-**2. Legacy API Key**
-- Single shared API key
-- Backward compatibility
-- Simple authentication
-
-**3. No-Auth Mode**
-- Development and testing
-- IP-based rate limiting
-- Public access endpoints
-
-### Security Best Practices
-
-```python
-# Secure API key generation
-api_key = api_key_manager.generate_api_key()  # Uses secrets.choice()
-
-# Rate limiting configuration
-rate_limiter = RateLimiter(database_manager)
-await rate_limiter.check_rate_limit(api_key)
-
-# Request validation
-from webscout.auth.middleware import AuthMiddleware
-auth_middleware = AuthMiddleware(api_key_manager, rate_limiter)
+```bash
+webscout-server --log-level debug
 ```
 
-**Security Headers:**
-```http
-X-RateLimit-Limit: 60
-X-RateLimit-Remaining: 45
-X-RateLimit-Reset: 2024-01-15T10:30:00Z
-Authorization: Bearer ws_abc123...
-```
+Common issues include:
+- Incorrect provider or model names.
+- Network connectivity issues to the provider's API.
+- Invalid request format.
 
-*This documentation covers the comprehensive functionality of the [`webscout.auth`](../webscout/auth/__init__.py:1) module. For the most up-to-date information, refer to the source code and inline documentation.*
+*This documentation covers the comprehensive functionality of the [`webscout.server`](../webscout/server/__init__.py:1) module. For the most up-to-date information, refer to the source code and inline documentation.*

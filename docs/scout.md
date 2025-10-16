@@ -1,7 +1,8 @@
+# Scout: Advanced HTML Parser & Web Crawler
+
 **🚀 The Most Advanced HTML Parser & Web Crawler for AI/LLM Data Collection**
 
 **🌟 Built for the Future • Powered by Intelligence • Trusted by Developers**
-
 
 ## 📋 Overview
 
@@ -28,6 +29,7 @@ Scout is an ultra-powerful, enterprise-grade HTML parsing and web crawling libra
 - [Quick Start](#-quick-start)
 - [Features](#-features)
 - [Advanced Usage](#-advanced-usage)
+- [Webscout Integration](#-webscout-integration)
 - [API Reference](#-api-reference)
 - [Dependencies](#-dependencies)
 - [Supported Python Versions](#-supported-python-versions)
@@ -35,6 +37,8 @@ Scout is an ultra-powerful, enterprise-grade HTML parsing and web crawling libra
 - [License](#-license)
 
 ## 📦 Installation
+
+Scout is included with Webscout:
 
 ```bash
 pip install webscout
@@ -364,6 +368,76 @@ if not scout.cache('parsed_data'):
     scout.cache('parsed_data', data)
 
 cached_data = scout.cache('parsed_data')
+```
+
+## 🔗 Webscout Integration
+
+Scout is deeply integrated into Webscout's search engines, providing powerful HTML parsing capabilities without external dependencies.
+
+### Why Scout in Webscout?
+
+- **Zero Dependencies**: No need to install BeautifulSoup4 or lxml separately
+- **Full BS4 Compatibility**: Drop-in replacement for BeautifulSoup with the same API
+- **Enhanced Features**: Advanced CSS selectors, text analysis, web crawling, and more
+- **Better Performance**: Optimized parsing and traversal
+
+### Scout Features Used in Search
+
+The search engines leverage Scout's powerful CSS selector capabilities:
+
+```python
+from webscout.scout import Scout
+
+# Parse HTML response
+html = response.text
+soup = Scout(html)
+
+# CSS selectors (just like BeautifulSoup)
+results = soup.select('ol#b_results > li.b_algo')  # Child combinator
+title = result.select_one('h2 a')                   # Descendant selector
+paragraphs = result.select('p.description')         # Class selector
+
+# Extract data
+href = title.get('href')
+text = title.get_text(strip=True)
+```
+
+### Supported CSS Selectors in Search
+
+Scout's CSS selector engine supports:
+
+- **Tag selectors**: `p`, `div`, `a`
+- **Class selectors**: `.class`, `p.class`, `.class1.class2`
+- **ID selectors**: `#id`, `div#id`
+- **Attribute selectors**: `[attr]`, `[attr="value"]`
+- **Descendant selectors**: `div p`, `div span a`
+- **Child selectors**: `div > p`, `ol > li.item`
+- **Combined selectors**: `p.class#id[attr]`
+
+### Additional Scout Methods in Search
+
+Beyond CSS selectors, Scout provides many other useful methods:
+
+```python
+from webscout.scout import Scout
+
+soup = Scout(html)
+
+# Find methods (BeautifulSoup-compatible)
+soup.find('div', attrs={'class': 'content'})
+soup.find_all('p', limit=10)
+
+# Text extraction
+soup.get_text(separator='\n', strip=True)
+
+# Tree traversal
+tag.find_parent('div')
+tag.find_next_sibling('p')
+
+# Export to different formats
+soup.to_json(indent=2)
+soup.to_markdown()
+soup.prettify()
 ```
 
 ## 📚 API Reference

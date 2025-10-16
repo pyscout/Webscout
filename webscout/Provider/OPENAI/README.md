@@ -1,5 +1,5 @@
 <div align="center">
-  <a href="https://github.com/OEvortex/Webscout">
+  <a href="https://github.com/pyscout/Webscout">
     <img src="https://img.shields.io/badge/WebScout-OpenAI%20Compatible%20Providers-4285F4?style=for-the-badge&logo=openai&logoColor=white" alt="WebScout OpenAI Compatible Providers">
   </a>
   <br/>

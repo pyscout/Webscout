@@ -86,7 +86,7 @@
 - **[YouTube Toolkit](webscout/Extra/YTToolkit/README.md):** Advanced YouTube video and transcript management with multi-language support
 - **[Text-to-Speech (TTS)](webscout/Provider/TTS/README.md):** Convert text into natural-sounding speech using multiple AI-powered providers
 - **[Text-to-Image](webscout/Provider/TTI/README.md):** Generate high-quality images using a wide range of AI art providers
-- **[Weather Tools](webscout/Extra/weather.md):** Retrieve detailed weather information for any location
+- **[Weather Tools](docs/weather.md):** Retrieve detailed weather information for any location
 </p>
 </details>
 

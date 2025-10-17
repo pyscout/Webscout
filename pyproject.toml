@@ -61,7 +61,6 @@ dependencies = [
     "orjson",
     "PyYAML",
     "pillow",
-    "bson",
     "cloudscraper",
     "html5lib",
     "aiofiles",

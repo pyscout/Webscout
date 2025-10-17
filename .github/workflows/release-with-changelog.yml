@@ -75,8 +75,8 @@ jobs:
           fi
           
           # Extract the section for the current version from changelog.md
-          # Look for the first version section (should be the latest)
-          awk '/^# 🚀 What.s Changed in v/{flag=1} flag{print; if(/^---$/ || /^## \[Unreleased\]/){exit}}' changelog.md > RELEASE_NOTES.md
+          # Look for the specific version section
+          awk "/^# 🚀 What's Changed in v${VERSION}$/{flag=1} flag{print; if(/^---$/){exit}}" changelog.md > RELEASE_NOTES.md
           
           # If no content was extracted, check if version matches
           if [ ! -s RELEASE_NOTES.md ]; then

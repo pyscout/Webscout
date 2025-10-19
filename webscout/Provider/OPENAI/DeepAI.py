@@ -104,8 +104,7 @@ class Completions(BaseCompletions):
             response = self._client.session.post(
                 "https://api.deepai.org/hacking_is_a_serious_crime",
                 data=payload,
-                timeout=self._client.timeout,
-                impersonate="chrome110"  # Use impersonate for better compatibility
+                timeout=self._client.timeout
             )
 
             if response.status_code != 200:
@@ -159,8 +158,7 @@ class Completions(BaseCompletions):
             response = self._client.session.post(
                 "https://api.deepai.org/hacking_is_a_serious_crime",
                 data=payload,
-                timeout=self._client.timeout,
-                impersonate="chrome110"  # Use impersonate for better compatibility
+                timeout=self._client.timeout
             )
 
             if response.status_code != 200:

@@ -1,2 +1,2 @@
-__version__ = "2025.10.19.2"
+__version__ = "2025.10.19.3"
 __prog__ = "webscout"

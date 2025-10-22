@@ -5,9 +5,10 @@ from webscout.AIbase import Provider
 from typing import AsyncGenerator, Dict, List, Optional, Union
 
 try:
-    from ollama import AsyncClient, Client, ResponseError
+    from ollama import AsyncClient, Client, ResponseError # type: ignore
 except ImportError as e:
-    pass
+    print("Please install the 'ollama' package to use the OLLAMA provider: pip install ollama")
+    raise e
 
 class OLLAMA(Provider):
     required_auth = True

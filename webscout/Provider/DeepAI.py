@@ -18,7 +18,7 @@ class DeepAI(Provider):
     A provider for DeepAI's chat functionality, supporting both streaming and non-streaming responses.
     Structured similarly to other providers like DeepInfra and X0GPT.
     """
-    required_auth = False
+    required_auth = True
     AVAILABLE_MODELS = [
         "standard", 
         "genius", 

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from typing import List, Dict, Optional, Union, Generator, Any
 import time
 import json
@@ -152,7 +153,7 @@ class Flowith(OpenAICompatibleProvider):
     AVAILABLE_MODELS = [
         "gpt-5-nano", "gpt-5-mini", "glm-4.5", "gpt-oss-120b", "gpt-oss-20b", "kimi-k2",
         "gpt-4.1", "gpt-4.1-mini", "deepseek-chat", "deepseek-reasoner",
-        "gemini-2.5-flash", "grok-3-mini"
+        "gemini-2.5-flash", "grok-3-mini", "claude-haiku-4.5"
     ]
 
     chat: Chat
@@ -171,7 +172,7 @@ if __name__ == "__main__":
     client = Flowith()
     messages = [{"role": "user", "content": "Hello, how are you?"}]
     response = client.chat.completions.create(
-        model="gpt-5-nano",
+        model="gpt-oss-120b",
         messages=messages,
         stream=True
     )

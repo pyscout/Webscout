@@ -83,7 +83,7 @@ jobs:
             echo "Warning: Could not find changelog entry for v$VERSION in changelog.md"
             echo "Generating basic changelog from git commits..."
             
-            echo "# � What's Changed in v$VERSION" > RELEASE_NOTES.md
+            echo "# 🚀 What's Changed in v$VERSION" > RELEASE_NOTES.md
             echo "" >> RELEASE_NOTES.md
             
             if [ -z "$PREVIOUS_TAG" ]; then
@@ -97,7 +97,7 @@ jobs:
             
             echo "" >> RELEASE_NOTES.md
             echo "" >> RELEASE_NOTES.md
-            echo "## � Installation" >> RELEASE_NOTES.md
+            echo "## 📦 Installation" >> RELEASE_NOTES.md
             echo '```bash' >> RELEASE_NOTES.md
             echo "pip install --upgrade webscout==$VERSION" >> RELEASE_NOTES.md
             echo '```' >> RELEASE_NOTES.md

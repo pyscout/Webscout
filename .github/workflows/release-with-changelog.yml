@@ -169,10 +169,11 @@ jobs:
             COMMITS=$(git log --pretty=format:"- %s (%h)" --max-count=50 2>/dev/null || echo "- Initial commit")
           fi
           
-          # Generate changelog with AI
-          echo "$COMMITS" | python /tmp/generate_changelog.py "$VERSION" "$PREVIOUS_TAG" > /tmp/ai_changelog_content.txt 2>&1
+          # Generate changelog with AI (separate stderr and stdout)
+          echo "$COMMITS" | python /tmp/generate_changelog.py "$VERSION" "$PREVIOUS_TAG" > /tmp/ai_changelog_content.txt 2> /tmp/ai_changelog_errors.txt
           
-          if [ $? -eq 0 ] && [ -s /tmp/ai_changelog_content.txt ] && ! grep -q "Error" /tmp/ai_changelog_content.txt; then
+          # Check if generation was successful (exit code 0, non-empty file, no errors in stderr)
+          if [ $? -eq 0 ] && [ -s /tmp/ai_changelog_content.txt ] && [ ! -s /tmp/ai_changelog_errors.txt ] || ! grep -q "^Error:" /tmp/ai_changelog_errors.txt 2>/dev/null; then
             # Success! Create the full release notes file
             echo "# 🚀 What's Changed in v$VERSION" > RELEASE_NOTES.md
             echo "" >> RELEASE_NOTES.md
@@ -188,6 +189,9 @@ jobs:
             echo "✅ Successfully generated changelog with AI (Pollinations.ai)"
           else
             echo "⚠️ AI changelog generation failed, will use fallback method"
+            echo "Errors:"
+            cat /tmp/ai_changelog_errors.txt 2>/dev/null || echo "No error log available"
+            echo "Output:"
             cat /tmp/ai_changelog_content.txt 2>/dev/null || echo "No output from AI"
             echo "success=false" >> $GITHUB_OUTPUT
           fi

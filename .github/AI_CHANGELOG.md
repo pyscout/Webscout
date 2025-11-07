@@ -95,13 +95,16 @@ TextPollinationsAI(
 ### Available Models
 
 Pollinations.ai offers multiple free models that can be used:
-- `openai` - General purpose, good for changelogs (current)
+- `openai` - General purpose, good for changelogs (current model used in workflow)
+- `openai-large` - Default model in TextPollinationsAI class (not used in workflow)
 - `openai-fast` - Faster responses
 - `gemini` - Google's model
 - `mistral` - Mistral AI model
 - `deepseek-reasoning` - Advanced reasoning
 
-To change the model, edit the `model` parameter in the Python script.
+**Note**: The workflow explicitly sets `model="openai"` to use the standard OpenAI-compatible model from Pollinations, which differs from the TextPollinationsAI class default of `openai-large`.
+
+To change the model, edit the `model` parameter in the Python script within the workflow.
 
 ### Prompt Engineering
 

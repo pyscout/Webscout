@@ -153,7 +153,7 @@ class Flowith(OpenAICompatibleProvider):
     AVAILABLE_MODELS = [
         "gpt-5-nano", "gpt-5-mini", "glm-4.5", "gpt-oss-120b", "gpt-oss-20b", "kimi-k2",
         "gpt-4.1", "gpt-4.1-mini", "deepseek-chat", "deepseek-reasoner",
-        "gemini-2.5-flash", "grok-3-mini", "claude-haiku-4.5"
+        "gemini-2.5-flash"
     ]
 
     chat: Chat

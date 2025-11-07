@@ -1,5 +1,11 @@
 name: Create Release with Changelog
 
+# This workflow automatically creates GitHub releases with AI-generated changelogs
+# It uses free AI providers (Pollinations.ai via webscout) to generate detailed, 
+# well-formatted release notes from commit history. No API keys required!
+# If AI generation fails, it falls back to extracting changelogs from changelog.md 
+# or generating basic ones from git commits.
+
 on:
   workflow_run:
     workflows: ["Publish to PyPI"]
@@ -61,26 +67,164 @@ jobs:
             echo "Previous tag: $PREVIOUS_TAG"
           fi
 
-      - name: Extract changelog from changelog.md
-        id: changelog
+      - name: Set up Python for changelog generation
         if: steps.check_tag.outputs.exists == 'false'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install webscout for AI changelog generation
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          python -m pip install --upgrade pip
+          pip install curl-cffi requests
+          # Install webscout from the local repository
+          pip install -e .
+
+      - name: Generate changelog with AI (Pollinations.ai)
+        id: ai_changelog
+        if: steps.check_tag.outputs.exists == 'false'
+        continue-on-error: true
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
           PREVIOUS_TAG="${{ steps.previous_tag.outputs.previous_tag }}"
           
-          # Check if changelog.md exists
-          if [ ! -f "changelog.md" ]; then
-            echo "Error: changelog.md not found"
-            exit 1
+          # Create Python script for changelog generation
+          cat > /tmp/generate_changelog.py << 'PYTHON_SCRIPT'
+          import sys
+          import os
+          from webscout.Provider.TextPollinationsAI import TextPollinationsAI
+
+          def generate_changelog(version, previous_tag, commits_output):
+              """Generate changelog using Pollinations.ai API (free, no API key required)"""
+              try:
+                  # Initialize Pollinations AI with a suitable model
+                  ai = TextPollinationsAI(
+                      model="openai",  # Using openai model from pollinations
+                      is_conversation=False,
+                      timeout=60,
+                      system_prompt="You are a professional technical writer specializing in creating clear, concise, and informative changelogs for software releases."
+                  )
+                  
+                  # Prepare the prompt
+                  if previous_tag:
+                      context = f"This release (v{version}) follows version {previous_tag}."
+                  else:
+                      context = "This is the initial release."
+                  
+                  prompt = f"""Generate a detailed, professional changelog for version {version} of the 'webscout' Python package based on these commits:
+
+          {commits_output}
+
+          {context}
+
+          Format the changelog with the following structure:
+          1. A brief summary of the release (2-3 sentences)
+          2. Categorize changes into these sections (only include sections that apply):
+             - ✨ Features (new functionality)
+             - 🐛 Bug Fixes (fixes to existing functionality)
+             - 🔧 Maintenance (code improvements, refactoring)
+             - 📚 Documentation (documentation updates)
+             - ⚡ Performance (performance improvements)
+             - 🔒 Security (security fixes)
+          3. Add relevant emojis for visual appeal
+          4. Include statistics: Total Commits count
+          5. End with installation instructions using: pip install --upgrade webscout=={version}
+          
+          Make it engaging and informative. Use proper markdown formatting.
+          Do NOT include the version header "What's Changed in vX.X.X" as that will be added separately."""
+                  
+                  # Generate changelog using streaming (more reliable)
+                  print("🤖 Generating changelog with AI (Pollinations.ai)...", file=sys.stderr)
+                  response_text = ""
+                  for chunk in ai.chat(prompt, stream=True):
+                      response_text += chunk
+                  
+                  if response_text and len(response_text.strip()) > 100:
+                      print(response_text)
+                      return True
+                  else:
+                      print("Error: AI response too short or empty", file=sys.stderr)
+                      return False
+                      
+              except Exception as e:
+                  print(f"Error generating changelog with AI: {str(e)}", file=sys.stderr)
+                  import traceback
+                  traceback.print_exc(file=sys.stderr)
+                  return False
+
+          if __name__ == "__main__":
+              version = sys.argv[1]
+              previous_tag = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] else None
+              commits_output = sys.stdin.read()
+              
+              success = generate_changelog(version, previous_tag, commits_output)
+              sys.exit(0 if success else 1)
+          PYTHON_SCRIPT
+          
+          # Get commit messages
+          if [ -n "$PREVIOUS_TAG" ]; then
+            COMMITS=$(git log $PREVIOUS_TAG..HEAD --pretty=format:"- %s (%h)" 2>/dev/null || echo "- Initial commit")
+          else
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --max-count=50 2>/dev/null || echo "- Initial commit")
           fi
           
-          # Extract the section for the current version from changelog.md
-          # Look for the specific version section
-          awk "/^# 🚀 What's Changed in v${VERSION}$/{flag=1} flag{print; if(/^---$/){exit}}" changelog.md > RELEASE_NOTES.md
+          # Generate changelog with AI (separate stderr and stdout)
+          echo "$COMMITS" | python /tmp/generate_changelog.py "$VERSION" "$PREVIOUS_TAG" > /tmp/ai_changelog_content.txt 2> /tmp/ai_changelog_errors.txt
           
-          # If no content was extracted, check if version matches
+          # Check if generation was successful (exit code 0, non-empty file, no errors in stderr)
+          if [ $? -eq 0 ] && [ -s /tmp/ai_changelog_content.txt ] && [ ! -s /tmp/ai_changelog_errors.txt ] || ! grep -q "^Error:" /tmp/ai_changelog_errors.txt 2>/dev/null; then
+            # Success! Create the full release notes file
+            echo "# 🚀 What's Changed in v$VERSION" > RELEASE_NOTES.md
+            echo "" >> RELEASE_NOTES.md
+            cat /tmp/ai_changelog_content.txt >> RELEASE_NOTES.md
+            echo "" >> RELEASE_NOTES.md
+            echo "---" >> RELEASE_NOTES.md
+            echo "" >> RELEASE_NOTES.md
+            if [ -n "$PREVIOUS_TAG" ]; then
+              echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREVIOUS_TAG}...v${VERSION}" >> RELEASE_NOTES.md
+            fi
+            
+            echo "success=true" >> $GITHUB_OUTPUT
+            echo "✅ Successfully generated changelog with AI (Pollinations.ai)"
+          else
+            echo "⚠️ AI changelog generation failed, will use fallback method"
+            echo "Errors:"
+            cat /tmp/ai_changelog_errors.txt 2>/dev/null || echo "No error log available"
+            echo "Output:"
+            cat /tmp/ai_changelog_content.txt 2>/dev/null || echo "No output from AI"
+            echo "success=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract changelog from changelog.md
+        id: changelog
+        if: steps.check_tag.outputs.exists == 'false' && steps.ai_changelog.outputs.success != 'true'
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          PREVIOUS_TAG="${{ steps.previous_tag.outputs.previous_tag }}"
+          
+          echo "📝 Falling back to traditional changelog extraction..."
+          
+          # Check if changelog.md exists
+          if [ ! -f "changelog.md" ]; then
+            echo "Warning: changelog.md not found, generating from git commits"
+          else
+            # Extract the section for the current version from changelog.md
+            # Convert UTF-16 to UTF-8 if needed
+            if file changelog.md | grep -q "UTF-16"; then
+              iconv -f UTF-16LE -t UTF-8 changelog.md > /tmp/changelog_utf8.md
+              CHANGELOG_FILE="/tmp/changelog_utf8.md"
+            else
+              CHANGELOG_FILE="changelog.md"
+            fi
+            
+            # Look for the specific version section
+            awk "/^# 🚀 What's Changed in v${VERSION}$/{flag=1} flag{print; if(/^---$/){exit}}" "$CHANGELOG_FILE" > RELEASE_NOTES.md
+          fi
+          
+          # If no content was extracted, generate from git commits
           if [ ! -s RELEASE_NOTES.md ]; then
-            echo "Warning: Could not find changelog entry for v$VERSION in changelog.md"
+            echo "Warning: Could not find changelog entry for v$VERSION"
             echo "Generating basic changelog from git commits..."
             
             echo "# 🚀 What's Changed in v$VERSION" > RELEASE_NOTES.md
@@ -107,6 +251,22 @@ jobs:
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           cat RELEASE_NOTES.md >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Set final changelog output
+        id: final_changelog
+        if: steps.check_tag.outputs.exists == 'false'
+        run: |
+          if [ "${{ steps.ai_changelog.outputs.success }}" == "true" ]; then
+            echo "✅ Using AI-generated changelog (Pollinations.ai)"
+            echo "changelog<<EOF" >> $GITHUB_OUTPUT
+            cat RELEASE_NOTES.md >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "📝 Using fallback changelog"
+            echo "changelog<<EOF" >> $GITHUB_OUTPUT
+            cat RELEASE_NOTES.md >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
 
       - name: Create Git Tag
         if: steps.check_tag.outputs.exists == 'false'
@@ -122,10 +282,10 @@ jobs:
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
           name: Release v${{ steps.get_version.outputs.version }}
-          body: ${{ steps.changelog.outputs.changelog }}
+          body: ${{ steps.final_changelog.outputs.changelog }}
           draft: false
           prerelease: false
-          generate_release_notes: false  # We generate our own
+          generate_release_notes: false  # We generate our own with AI (Pollinations.ai)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

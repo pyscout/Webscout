@@ -134,12 +134,14 @@ jobs:
           Make it engaging and informative. Use proper markdown formatting.
           Do NOT include the version header "What's Changed in vX.X.X" as that will be added separately."""
                   
-                  # Generate changelog
+                  # Generate changelog using streaming (more reliable)
                   print("🤖 Generating changelog with AI (Pollinations.ai)...", file=sys.stderr)
-                  response = ai.chat(prompt, stream=False)
+                  response_text = ""
+                  for chunk in ai.chat(prompt, stream=True):
+                      response_text += chunk
                   
-                  if response and len(response.strip()) > 100:
-                      print(response)
+                  if response_text and len(response_text.strip()) > 100:
+                      print(response_text)
                       return True
                   else:
                       print("Error: AI response too short or empty", file=sys.stderr)
